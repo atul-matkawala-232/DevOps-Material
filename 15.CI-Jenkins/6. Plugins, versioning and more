@@ -1,0 +1,28 @@
+### Environment Variable ###
+
+    1. Go to jenkins.io and searach for environment Variables
+    2. Go through different builtin variables supported by Jenkins 
+
+
+Create a new project
+    Copy it from existing project
+    Disable post build actions 
+
+    Create one more section under build steps 
+
+        mkdir -p versions
+        cp target/vprofle-v2.war versions/vprofile$<Environemnt Variable>.war
+
+
+## What if I want to specify the version ? ##
+
+    Go for - This project is parameterized
+
+
+
+### What if I need a timestamp ### 
+        Some artifacts needs to be stored with timestamp, then you need to generate those artifacts with timestamp. 
+
+        lets use a plugin 
+
+            Build Timestamp 

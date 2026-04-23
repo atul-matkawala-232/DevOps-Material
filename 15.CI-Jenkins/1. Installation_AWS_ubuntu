@@ -1,0 +1,46 @@
+1. Login to AWS 
+2. Choose Hyderabad Region
+3. Create EC2 instance running Ubuntu
+
+
+
+sudo apt update
+sudo apt install fontconfig openjdk-21-jdk -y 
+java -version
+
+# If the installation was successful, you should see an output similar to the following:
+
+
+openjdk 21.0.8 2025-07-15
+OpenJDK Runtime Environment (build 21.0.8+9-Debian-1)
+OpenJDK 64-Bit Server VM (build 21.0.8+9-Debian-1, mixed mode, sharing)
+
+
+sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc]" \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt update
+sudo apt install jenkins -y 
+
+
+# If you want to run this as "user data" script while creating EC2 instance 
+
+#!/bin/bash 
+sudo apt update
+sudo apt install fontconfig openjdk-21-jdk -y 
+java -version
+
+sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
+
+echo "deb [signed-by=/etc/apt/keyrings/jenkins-keyring.asc]" \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+
+
+sudo apt update
+
+sudo apt install jenkins -y
+

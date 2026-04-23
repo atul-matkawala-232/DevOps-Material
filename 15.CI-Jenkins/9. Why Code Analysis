@@ -1,0 +1,26 @@
+Why Code Analysis? 
+
+    - Improves code quality and Maintainability
+    - Detects security vulnerabilities early
+    - Reduces Technical Debt
+    - Helps team follow consistent coding standards
+    - Saves time and cost by catching issues before production. 
+    - supports automated testing and devops workflow. 
+
+    Top Code analysis Tools
+     
+     - SonarQube: Popular for continuous inspection of code quality 
+     - ESLint: WIdely used for Javascript/TypeScript
+     - CheckStyle: Enforces Java Coding standards
+     - PMD: Detects common Coding flaws
+     - FindBugs/SpotBugs: Finds potential bugs in Java
+     - Coverity: Advanced Enterprise level analysis. 
+
+In this course, we will be using SonarQube and CheckStyle. 
+
+Adding SonarQube Scanner Tool in Jenkins
+Integrating SonarQube server with Jenkins. 
+
+    Tools 
+    - Manage Tools - SonarQube Scanner Installation
+    

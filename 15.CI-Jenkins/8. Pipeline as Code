@@ -1,0 +1,13 @@
+Introduction
+
+    Jenkinsfile Vscode extension. 
+
+Where do you want to run your pipeline code. 
+        Agents - which agent do you want to install. 
+
+Build Tools  
+        Tool names added in global configuration. 
+
+        
+
+

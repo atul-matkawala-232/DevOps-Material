@@ -1,0 +1,42 @@
+What are the tools to be used 
+
+        1. Git - To fetch the source code. 
+        2. MAVEN - To build the code. 
+        3. JDK - Maven required JDK.
+
+2. Manage Jenkins 
+        1. Tools 
+        2. Plugins
+
+3. Manage Tools 
+
+        1. Install MAVEN 3.9.9 
+        2. Install JDK 17 
+                Use path -  ls /usr/lib/jvm 
+                Install JDK 17 - apt install openjdk-17-jdk -y
+
+
+# Let us build a vprofile project
+
+    1. JDK17 
+    2. MAVEN3.9
+
+
+Lets specify default MAVEN in the project
+    - The job should fail 
+
+Lets manually install the MAVEN 
+    
+    - apt update && apt install maven -y 
+    - maven --version 
+
+
+Exercise:
+    1. Install JDK 11
+
+
+Meaning of **/*.txt 
+
+    1. **/ --> check in present folder and also all subfolder. 
+    2. *.txt. --> File with any name but with .txt extension.
+   

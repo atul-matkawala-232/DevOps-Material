@@ -1,0 +1,49 @@
+Create Another EC2 instance.
+
+        Name: MavenAgent2
+        Machine Type: t2-small
+        Security Group: MaventAgent1-sg 
+            Allow ssh from your system IP OR anywhere
+            allow ssh from Jenkins server - security group. 
+
+
+2. Login to MavenAgent2 EC2 instance. 
+        ssh -i <Key-pair.pem> ubuntu@<Public-IP-MaventAgent2>
+
+        Dependencies 
+            1. Git is preinstalled = "git --version"
+            2. JDK needs to be installed - JDK 21 
+                    java --version
+                    sudo -i 
+                    apt update && apt install openjdk-21-jdk -y 
+                    java --version
+
+Need to create a directory to let jenkins install the agent tools and workspace
+                    mkdir /opt/jenkins 
+
+                    id ubuntu 
+
+                    chown ubuntu:ubuntu /opt/jenkins 
+
+                    ls -ld /opt/jenkins 
+
+            3. MAVEN needs to be installed.(install it through Jenkins Master)
+
+
+
+3. keep the key-pair ready 
+
+        cat <key-pair.pem>
+
+4. Now head over to jenkins 
+
+        Manage Jenkins --> Nodes --> new nodes
+
+            (a) Give node a name
+            (b) Number of executors (parallel jobs that can be executed at one time)
+            (c) Labels - MAVENBUILDER1 
+            (d) Usage - Only build jobs with Label expression matching this node
+            (e) Launch Method - Launch agent via ssh
+                    (i) Give Agents private IP (Master and Agent both are in same network)
+                    (ii) Credentials - add - Global Settings - SSH username with Private Key
+                    (iii) host key verification strategy - non verifying verification strategy 

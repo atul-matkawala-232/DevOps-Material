@@ -1,0 +1,130 @@
+## Addressing Disk space issue on Jenkins Master (Controller) or Agent Nodes.
+    - Check the existing FS size
+            df -h 
+            df -Th 
+            fdisk -l  
+    - Increase the FS size through AWS Console 
+    - Reboot the EC2 instance 
+    - Verify the increased size.
+
+
+## Lets revisit the Flow of continuous Integration Pipeline. 
+
+
+Steps: 
+    - Jenkins Setup (already Completed)
+    - Nexus Setup 
+    - SonarQube Setup
+    - Security Group
+    - Plugins 
+    - Integrate 
+        (a) Nexus 
+        (b) SonarQube 
+    - Write pipeline script
+    - Set notifications 
+
+
+
+## Lets proceed with Installation 
+
+    - Nexus server - Amazon Linux 2023 [Port Number:8081]
+            Security Groups
+                Port 22 - MyIP
+                Port 8081 - My IP 
+                Port 8081 - Jenkins sg
+    - SonarQube server - Ubuntu 24 Lts 
+            - Nginx
+            - SonarQube service - [Port Number:9000] 
+            - PostGresql 
+        Security Group
+            Port 22 - My IP
+            Port 80 - My IP 
+            Port 80 - Jenkins sg
+
+    Login to Nexus server thorough SSH
+        sudo -i 
+        systemctl status nexus 
+        ls /opt/nexus 
+        java --version 
+
+    Access Nexus server from Web browser
+        get the public IP --> http://<public-IP>:8081
+        click on Sign in - Copy the file path 
+        go to terminal (SSH) --> cat <Initial-Password-path>
+        Login using this password with admin account 
+        set the new credentials 
+        Enable anonymous access. 
+
+    Login to SonarQube 
+        get the Public IP and access it from browser. 
+        credentials are admin and password is admin for the first time 
+
+    SonarQube also contacts Jenkins so we need to allow a flow in Jenkins security group 
+        Add one rule in Jenkins-sg 
+            Port 8080 - allow it from sonarQube-sg 
+
+
+    SHUTDOWN THE INSTANCES as they will be used in upcoming lectures and not right away. 
+
+
+##Sonatype Nexus OSS (Open Source Edition) is a 
+universal artifact repository manager used to store, 
+manage, and distribute software components such as 
+Maven libraries, Docker images, npm packages, and more. 
+It acts as a central hub for all build artifacts in DevOps pipelines.
+
+    Integrates with CI/CD tools
+        Nexus integrates smoothly with:
+        • Jenkins
+        • GitHub Actions
+        • GitLab CI
+        • Azure DevOps
+        CI pipelines can pull dependencies and push build artifacts to Nexus.
+
+
+        Types of Repositories in Nexus OSS
+            Nexus supports three main repository types:
+
+        • Hosted → Store your internal artifacts
+        • Proxy → Cache external repositories
+        • Group → Combine multiple repos under one URL
+        This structure simplifies dependency management across projects.
+
+
+
+## SonarQube is a code quality and security platform, 
+while the SonarQube Scanner is the tool 
+that performs the actual code analysis and sends results to 
+the SonarQube server. They are different components but work together.
+
+    What SonarQube Is Used For
+        SonarQube is a centralized platform that continuously inspects code for:
+        • Bugs
+        • Code smells
+        • Security vulnerabilities
+        • Duplications
+        • Test coverage
+        • Maintainability issues
+        It provides a dashboard where developers, DevOps engineers, and architects can track code health over time.
+
+    🧩 What the SonarQube Scanner Does
+        The Scanner is the component that actually analyzes your source code. It runs locally or inside CI pipelines and sends the analysis report to the SonarQube server.
+            According to SonarSource:
+            • SonarQube = server that stores and displays results
+            • SonarScanner = tool that performs analysis and uploads results
+
+
+
+Plugins:  
+    - Nexus
+    - SonarQube
+    - Git
+    - Pipeline Maven Integration Plugins
+    - Build Timestamp
+
+    Go to Manage Jenkins 
+        - Available Plugins 
+            Nexus Artifact uploader
+            SonarQube Scanner
+            Pipeline Maven Integration
+            Build Timestamp  

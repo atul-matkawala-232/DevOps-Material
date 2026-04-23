@@ -1,0 +1,20 @@
+1. Go to settings 
+2. check different options 
+3. system settings 
+4. understand tools and plugins 
+5. Understand freestyle vs pipeline as code 
+
+
+# Jobs in Jenkins 
+
+    1. freestyle Jobs
+
+            - Graphical Jobs
+            - Learning, Understanding and exploring jenkins
+            - Not recommended in Real time
+
+    2. Pipeline as code
+
+            - Pipeline created in Groovy 
+            - Recommended now. 
+            
