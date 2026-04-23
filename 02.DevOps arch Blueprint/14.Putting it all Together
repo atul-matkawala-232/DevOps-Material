@@ -1,0 +1,8 @@
+	1. Developer write code --> Pushes to Git
+	2. Ci Pipeline builds and tests the code
+	3. Artifact is stored in registry 
+	4. CD Pipeline deploys to Kubernetes clusters across AWS/Azure/GCP 
+	5. IaC provisions all cloud infrastructure 
+	6. Monitoring Tracks performance, logs, and alerts
+	7. Feedback loop --> Developers fix issues --> push new code --> Cycle repeats. 
+

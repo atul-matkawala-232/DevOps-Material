@@ -1,0 +1,12 @@
+Git is the single source of truth for everything; 
+
+	1. Application code 
+	2. Infrastructure code
+	3. Kubernetes Manifests 
+	4. Ci/CD pipeline definitions. 
+
+Real - world Example: 
+	
+	A bank using AWS AWS + Azure -- stores all microservices and terraform modules in Github Enterprise. 
+	
+	Every change --> pull request (PR request) --> review --> Merge --> Pipeline triggers. 

@@ -1,0 +1,14 @@
+Automated Tests to validate the build. 
+
+Real - world example : 
+
+	For an e-commerce app: 
+	
+	- Unit tests check - payment logic. 
+	- API test to validate order services. 
+	- Selenium tests to check UI flows. 
+
+Why it matters: 
+
+	Testing early prevents production failure and reduces overhead 
+	

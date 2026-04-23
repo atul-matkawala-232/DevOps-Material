@@ -1,0 +1,19 @@
+The artifact is deployed to environments (Dev -> QA-> Production) 
+
+
+Real - world Examples: 
+
+	A docker images is deployed to: 
+	
+		1. AWS ECS 
+		2. Azure AKS 
+		3. GCP GKE 
+		4. On-prem Kubernetes ( OpenShift )
+	
+Deployment Strategies: 
+
+		1. Rolling 
+		2. Canary 
+		3. Blue-green 
+
+

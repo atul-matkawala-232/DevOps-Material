@@ -1,0 +1,78 @@
+CD (Continuous Delivery/Deployment) automates: 
+
+
+Continuous Delivery is not equal to Continuous Deployment. 
+
+
+	- Environment Provisioning
+		○ Dev, QA, Prod 
+	- Deployment to Dev, QA or Prod etc. 
+	- Rollbacks. 
+
+
+Real - world example: 
+
+A fintech company uses: 
+
+	1. ArgoCD for GitOps based deployments. 
+	2. Helm Charts for Kubernetes deployments. 
+
+CD Ensures fast, safe, repeatable releases. 
+
+
+Continuous Delivery 
+
+Code changes are built, tested, and prepared for releases BUT a human must manually trigger the final deployment to production. 
+
+	- Automated: Build -- Test -- Staging  etc 
+	- Manual: Push to production (requires approval) 
+
+	GOAL: Ensure the code is always in a deployable state. 
+	
+	Best For: Teams that need business sign-off, compliance checks, or controlled release windows. 
+	
+	
+
+Continuous Deployment
+
+Every change that passes all automated tests is automatically deployed to production -- No human intervention at any stage. 
+
+
+	- Automated: Build. --> Test -- Staging --> Production
+	- No Manual approval - window is required to perform deployment to production. 
+
+
+	GOAL: Ship to users as fast as possible with zero manual steps 
+
+	Best For: Mature teams with high test coverage and fast rollback capabilities.
+	
+	
+	
+	How they fit in the CI/CD Pipeline: 
+	
+	
+	Code Commit
+	
+	Continuous Integration (CO) 
+		--> Build --> Unit Tests --> Integration tests
+		
+	Continuous Delivery (CD) 
+		--> Deploy to staging --> Acceptance tests --> [Manual Approval] --> Production. 
+		
+	Continuous Deployment (CD) 
+		--> Deploy to staging --> Acceptance Tests --> [Auto] -- Production
+		
+		
+		
+	Continuous Deployment is a superset of continuous Delivery. 
+	
+	All continuous Deployment pipelines practice continuous Delivery, but not vice-versa. 
+	
+	
+	The only difference is whether a human clicks the final "deploy" button.
+	
+	
+	
+
+
+

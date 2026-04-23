@@ -1,0 +1,72 @@
+This is where developers write application/Software Logic.
+
+Real-World Example: 
+
+	A team is building a food-delivery app. 
+	
+	Decoupling - Microservices ( a small program) -- API. 
+	
+		Python,
+		Java
+		Node.js etc
+		
+	
+	Code is stored in GitHub/GitLab/BitBucket, everyone can collaborate. 
+	
+	 
+	Vijaya - Developer -- Payment Gateway functionality. 
+	
+	Dhruti -- Developer -- Items in cart
+	
+	Kiran -- Landing page + Front-end of the application 
+	
+	Naveen - Sql queries and API's. 
+	
+	
+	Git --- Locally -- To write their code. 
+	
+	Push to it central location so that everyone in the team will know what is developed and If their code is aligned with others without any challenges. 
+	
+	
+	
+	Learning Outcomes: 
+	-------------------------------
+	
+	Version Control 
+	Branching Strategy
+			
+			Vijaya  ( Feature/payment) 
+			Naveen ( Feature/API) 
+			
+			
+	Pull Request (PR request) 
+	
+	
+		Main/Master Branch ---> Usually used for production. 
+		
+	PR request will go for Review of Senior Colleagues
+			Share the comments, enhancement on the code Vijaya has written. 
+		
+			Vijaya will modify 
+			
+			PR request -- Send it for review. 
+			
+			Based on the comment - Okay to go ahead merge with Main branch .
+			Code is ready for production. 
+			
+			
+			
+			
+		
+		
+			
+			
+			
+	
+	
+	
+	
+	
+	
+	 
+

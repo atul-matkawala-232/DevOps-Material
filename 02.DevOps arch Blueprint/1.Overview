@@ -1,0 +1,15 @@
+DevOps Architecture Blueprint
+
+	Code  --> Build --> Test --> Artifact --> Deploy --> Monitor
+	
+	Where Git Fits ? 
+	
+	Where CI fits ? 
+	
+	Where CD fits ? 
+	
+	Where IaC (Infrastructure as Code) fits ? 
+	
+	Where Containers & K8s (kubernetes) fits? 
+	
+	Where monitoring fits ? 

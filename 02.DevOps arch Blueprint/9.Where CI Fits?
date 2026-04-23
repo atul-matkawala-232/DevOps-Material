@@ -1,0 +1,16 @@
+CI (Continuous Integration) automate: 
+
+	1. Code compilation 
+	2. Unit testing 
+	3. Security scanning. 
+	4. Packaging. 
+
+Real-world Example: 
+
+A retail company: 
+
+	1. GitHub actions for CI 
+	2. SonarQube for code quality. 
+
+
+Every commit triggers CI --> ensure code is always in a deployable state. 

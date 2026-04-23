@@ -1,0 +1,68 @@
+Infrastructure as code manages cloud resources declaratively. 
+
+Code/ configuration files to define, provision, and manage your infrastructure 
+	Servers
+	Databases
+	Networks
+	Etc
+	
+Instead of manually clicking through or executing commands one at a time. 
+
+
+	100 VM's
+	
+	10 VPC's 
+	
+	1000 Users etc etc 
+	
+	
+	
+	I am going to write code in Terraform ---> to provision / Create reosurces in Cloud. 
+	
+	
+	1 VM - To be decommissioned. 
+	
+	
+	Terraform code -- to decommission VM 
+	
+	
+	
+	--------------------------------------------
+	
+	
+	Two types to manage infrastructure: 
+	
+	1. Declarative (what) 
+	2. Imperative (how) 
+	
+	
+	Declarative (What) 
+	
+		Describing the desired END state of my infrastructure and the tool figures out how to get there. 
+		
+		For example:  I want 3 EC2 instances, a load balancer, and an s3 bucket.  
+		
+		What to create, modify, or delete to match that state. 
+		
+	
+	Imperative (How) 
+	
+		You write step-by-step instructions telling the tool exactly what to do. 
+		
+		For example: First run this command, then create a server, then configure it, then attach storage etc etc. 
+		
+		
+	
+	Declarative IaC: 
+	
+	
+		a. Creates resources that don’t exist. 
+		b. Updates resources that have changed. --- S3 bucket is created. 
+		c. Destroy resources that were removed from the config. 
+	
+	
+	Declarative IaC means you say "here is what my infrastructure should look like" and the tool takes full responsibility for making reality match that description - whether that means creating, updating, or deleting cloud resources. You focus on the outcome, not the process. 
+	
+	
+	
+

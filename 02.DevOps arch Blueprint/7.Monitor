@@ -1,0 +1,14 @@
+Continuous monitoring ensures reliability. 
+
+Real-world Examples: 
+
+	1. Prometheus collects metrics. 
+	2. Grafana visualizes dashboards. 
+	3. ELK stacks captures logs. 
+
+
+Monitoring answers: 
+
+	1. Is the app healthy ? 
+	2. Is latency increasing?
+	3. Are errors spiking? 

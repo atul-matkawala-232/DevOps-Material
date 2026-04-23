@@ -1,0 +1,51 @@
+Containers package application with dependencies. 
+		
+		Microservice - Small application. 
+		
+		{
+			Ubuntu OS --- Some additional packages that we need to download. 
+			Install dependencies. 
+			
+			
+			Install Micrservice application 
+		}
+		
+		
+	Image 
+	
+	
+	Just by simply using this image and run the container. 
+	
+	
+
+ Large app -- 1000 microservices -- 1000 containers. 
+
+
+Kubernetes orchestrate them across clouds. 
+
+	Real-world Example: 
+	
+		A SAAS company runs microservices on: 
+		
+		
+		1. AWS EKS  ( Elastic Kubernetes service) 
+		2. Azure AKS 
+		3. GCP GKE 
+	
+	
+	Kubernetes provides : 
+	
+	
+	1. Auto-scaling 
+	2. Self-healing 
+	3. Rolling updates 
+	4. Multi-cloud portability. 
+
+
+This is the backbone of Modern DevOps 
+
+
+	
+	
+	
+

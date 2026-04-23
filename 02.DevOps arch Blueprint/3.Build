@@ -1,0 +1,19 @@
+The raw code is converted into executable packages. 
+
+	Software --- <name of the package>.exe 
+
+Real - world Examples: 
+
+When a developer pushes code to GitHub, a CI pipeline triggers: 
+
+	- Written a code in Java
+	- Converted into executable file --- Maven
+	- Job of Maven
+		○ Compiles the JavaCode
+		○ Docker builds a container image. 
+
+Tools: Maven, Gradle, Docker, pip etc. 
+
+	
+
+

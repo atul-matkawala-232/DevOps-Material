@@ -1,0 +1,13 @@
+The tested build is stored in a secure repository. 
+
+Real- World Example: 
+
+	1. Docker image is stored in 
+		a. ECR (Elastic Container Registry) - AWS
+		b. GCR ( Google Container Registry) - GCP 
+		c. ACR (Azure Container Registry) - Azure 
+	2. JAR/WAR files stored in Jfrog Artifactory.
+	3. Helm charts stored in ChartMuseum
+
+Artifacts ensure repeatable deployments. 
+

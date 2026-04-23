@@ -1,0 +1,17 @@
+Monitoring ensures visibility across cloud and ensures that resources are healthy and operational. 
+
+
+Real-world example: 
+
+	1. Prometheus + Grafana for Metrics + Loki
+	2. CloudWatch + Azure monitor + GCP operations suite. 
+
+
+Monitoring: 
+
+	Which microservices is slow ? 
+	Which cloud region is failing, which Az is failing. 
+	How many users are impacted ? 
+	
+	
+	
