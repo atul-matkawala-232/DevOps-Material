@@ -1,24 +1,24 @@
-pipeline{
+pipeline {
     agent any
     tools {
         maven "MAVEN3.9.14"
         jdk "JDK17" 
     }
-    stages{
-        stage('Fetching code from GitHub'){
+    stages {
+        stage('Fetching code from GitHub') {
             steps{
                 git branch: 'atom', url: 'https://github.com/hkhcoder/vprofile-project.git'
             }
         }
         
-        stage('Run unit tests'){
+        stage('Run unit tests') {
             steps{
                 sh 'mvn test'
             }
         }
         
-        stage('Build the project'){
-            steps{
+        stage('Build the project') {
+            steps {
                 sh 'mvn install -DskipTests'
             }
             post {
