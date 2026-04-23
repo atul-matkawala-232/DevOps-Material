@@ -1,0 +1,14 @@
+aws ec2 run-instances --image-id ami-0ff5003538b60d5ec --count 1 --instance-type t3.micro --key-name My-Demo-Key-Pair --security-group-ids sg-0065573f5bd884bbc --subnet-id subnet-0653dca1ffa3dd761
+
+Image ID = 
+
+key-pair ---- First key pair using either console or CLI. 
+
+                Go ahead, find out the command on this command line interface pace to create a security group through CLI 
+
+                Then create security groups
+
+FInd out the subnet in which you wish to launch your EC2 - make sure that you use subnet ID and not the subnet name. 
+
+
+
