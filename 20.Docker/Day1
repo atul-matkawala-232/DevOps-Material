@@ -1,0 +1,75 @@
+What is Docker? 
+
+    - Open source platform for developing, shipping, and running applications.
+    - Uses containerization to package applications and their dependencies into a single unit called a container.
+    - Enable users to separate applications from infrastructure, so that you can deliver software quickly. 
+    - By taking advantage of dockers methods for shipping, testing, and deploying code, users can significantly reduce the delay
+        between writing code and running it in production.
+
+Benefits of Docker:
+ -  Portability: Docker containers can run on any system that supports Docker, regardless of the underlying operating system or hardware.
+ -  Scalability: Docker allows you to easily scale applications by running multiple containers across a cluster. 
+ -  Isolation: Each Docker container runs in its own isolated environment, which helps to prevent conflicts between applications and ensures that they do not interfere with each other.
+    -  Efficiency: Docker containers are lightweight and share the host system's kernel, which allows for
+    - faster startup times and lower resource usage compared to traditional virtual machines.
+ -  Version Control: Docker images can be versioned and stored in a registry, making it easy to manage and distribute applications across different environments.
+ -  Continuous Integration and Deployment: Docker integrates well with CI/CD pipelines, allowing for automated testing and deployment of applications.
+
+ The Docker Platform: 
+    Docker provides tooling and platform to manage the lifecycle of your container: 
+        - Develope your applications and its supporting components using container. 
+        - Container becomes the unit for distributing and testing application. 
+        - when you are ready, you can deploy your application in production using Docker.
+        - This works the same way whether your production environment is on-premises, in the cloud, or a hybrid of both.
+
+What can I use Docker for ? 
+
+    -  Application Development: Docker allows developers to create, test, and deploy applications in a consistent environment across different stages of the development lifecycle.
+    -  Microservices Architecture: Docker is ideal for building and deploying microservices-based applications, where each service can run in its own container.
+    -  Continuous Integration and Continuous Deployment (CI/CD): Docker can be integrated into CI/CD pipelines to automate the testing and deployment of applications.
+    -  DevOps: Docker enables DevOps teams to collaborate more effectively by providing a consistent environment for development, testing, and production.
+    -  Cloud Migration: Docker can help organizations migrate applications to the cloud by providing a consistent runtime environment across different cloud providers.
+    -  Legacy Application Modernization: Docker can be used to containerize legacy applications, making it easier to manage and deploy them in modern environments.
+
+    Consider following example: 
+
+        - A developer has written a code locally and share his work with his colleagues using docker container. 
+        - They use docker to push their applications into a test environment and run automated and manual tests.
+        - FInd bugs, then can fix them in dev environment itself and redeploy them to the test envionrment for testing and validations, 
+        - When testing complets, getting the fix to the customer is very simple as pushing the updated image to the production environment.
+
+Docker Architecture: 
+    - Docker Client: The Docker client is the primary interface for users to interact with Docker. It allows users to build, run, and manage Docker containers.
+    - Docker Daemon: The Docker daemon is responsible for managing Docker objects such as images, containers, networks, and volumes. It listens for API requests from the Docker client and performs the requested actions.
+    - Docker Images: A Docker image is a read-only template that contains the instructions for creating a Docker container. It includes the application code, runtime, libraries, and dependencies needed to run the application.
+    - Docker Containers: A Docker container is a runtime instance of a Docker image. It is an isolated environment that runs an application and its dependencies.
+    - Docker Registry: A Docker registry is a repository for storing and distributing Docker images. The most popular public registry is Docker Hub, but organizations can also set up private registries for their own use.
+
+The Docker Daemon (dockerd): 
+    - The Docker daemon is the core component of the Docker architecture. It is responsible for managing Docker objects such as images, containers, networks, and volumes.
+    - The Docker daemon listens for API requests from the Docker client and performs the requested actions, such as building images, running containers, and managing resources.
+    - The Docker daemon can run on a local machine or on a remote server, allowing users to manage Docker containers across different environments.
+
+The Docker Client (docker): 
+    - The Docker client is the primary interface for users to interact with Docker. It allows users to build, run, and manage Docker containers.
+    - The Docker client communicates with the Docker daemon using a REST API, which allows users to perform various actions such as building images, running containers, and managing resources.
+    - The Docker client can be used from the command line or through graphical user interfaces (GUIs) that provide a more user-friendly experience for managing Docker containers.
+
+
+Docker Desktop: 
+    - Docker Desktop is an application that provides a user-friendly interface for managing Docker containers on a local machine. It is available for Windows and macOS.
+    - Docker Desktop includes the Docker daemon, Docker client, and other tools (Docker Compose, Docker content Trust, Kubernetes and Credential Helper) needed to build, run, and manage Docker containers.
+    - It also provides features such as automatic updates, integration with development tools, and support for Kubernetes, making it easier for developers to work with Docker in their local development environment.
+
+Docker Registries: 
+    - A Docker registry is a repository for storing and distributing Docker images. It allows users to share and manage their Docker images across different environments.
+    - The most popular public registry is Docker Hub, which provides a vast collection of pre-built images for various applications and services. Users can also create their own private registries to store and manage their custom images securely.
+    - Docker registries support features such as image versioning, access control, and automated builds, making it easier for users to manage their Docker images effectively.
+    - When you use the docker pull, docker run, etc commands, docker pulls the required images from your configured registry. 
+    - When you use docker push command, docker pushes your image to your configured registry. 
+
+Docker Objects: 
+    - Docker Images: A Docker image is a read-only template that contains the instructions for creating a Docker container. It includes the application code, runtime, libraries, and dependencies needed to run the application.
+    - Docker Containers: A Docker container is a runtime instance of a Docker image. It is an isolated environment that runs an application and its dependencies.
+    - Docker Networks: Docker networks allow containers to communicate with each other and with external systems. They provide isolation and control over network traffic between containers.
+    - Docker Volumes: Docker volumes are used to persist data generated by and used by Docker containers. They allow data to be shared between containers and can be stored on the host system or in a remote location.
