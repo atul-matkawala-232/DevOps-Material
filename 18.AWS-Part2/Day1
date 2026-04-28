@@ -1,0 +1,31 @@
+3 Deployment Models: 
+
+1. On-premises 
+2. Cloud 
+3. Hybrid -  
+
+
+Cloud: 
+
+    IAAS – Infrastructure as Service 
+
+            Application Name: xyz (python)
+            Infrastructure 
+                Compute - EC2 Machine (Elastic Compute Cloud)
+            URL -- https://name_of_app.abc.com 
+
+
+    PAAS – Platform as Service
+
+            EBS – Elastic Beanstalk Service 
+
+            Python - 
+
+
+
+    SAAS – Software as Service
+
+            Gmail, Facebook, Twitter, etc.
+            Office 365, Google Docs, etc.
+
+
