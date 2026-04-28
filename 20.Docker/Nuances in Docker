@@ -1,0 +1,39 @@
+Nuances in Docker That Most Beginners Miss
+
+1. Containers are ephemeral, images are immutable
+        • A container is just a running instance of an image.
+        • You can delete containers freely; the image stays untouched.
+        • But you cannot delete an image if any container (running or exited) still references it.
+---
+2. `docker stop` vs `docker kill`
+        • stop sends a graceful SIGTERM → gives the app time to shut down.
+        • kill sends SIGKILL → immediate termination.
+        • Use stop unless you know the app is stuck.
+---
+3. `docker run` vs `docker start`
+        • docker run → creates a new container from an image.
+        • docker start → starts an existing stopped container.
+        • Many beginners accidentally create multiple containers by using run repeatedly.
+---
+4. Volumes vs Bind Mounts
+        • Volumes → managed by Docker, best for production.
+        • Bind mounts → map host folders, best for local development.
+        • Containers should be stateless; volumes store persistent data.
+---
+5. Networks matter more than you think
+        • Default bridge network isolates containers.
+        • Custom bridge networks allow automatic DNS-based container discovery.
+        • Example: ping mysql works if both containers are on the same custom network.
+---
+6. `docker exec` vs `docker attach`
+        • exec → open a new shell inside the container (safe).
+        • attach → attach to the main process (dangerous; can freeze your terminal).
+---
+7. `docker logs -f` is your best friend
+        • Follow logs in real time.
+        • Works even for exited containers (to debug why they crashed).
+---
+8. `docker system prune` is powerful but dangerous
+        • Cleans unused containers, images, networks.
+        • But can delete things you didn’t intend.
+        • Always run with --dry-run first.
