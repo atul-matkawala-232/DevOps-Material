@@ -1,0 +1,187 @@
+## Step 1 — Understand why port mapping exists
+  A container has its own private network namespace, meaning:
+      • It has its own IP (like 172.17.0.2)
+      • It has its own ports (like 80, 5000, 8080)
+      • These ports are not reachable from your host unless you explicitly expose them.
+  So Docker gives us a mechanism:
+      HostPort : ContainerPort
+  
+  This tells Docker:
+    “When traffic comes to HostPort, forward it to ContainerPort inside the container.”
+
+
+
+## Step 2 — Run a container with port mapping
+  To run a container with port mapping, you can use the -p flag with the docker run command. The syntax is:
+      docker run -p HostPort:ContainerPort ImageName 
+  For example, if you have a web application running on port 80 inside the container and you want to access it on port 8080 on your host, you would run:
+      docker run -p 8080:80 ImageName
+  This command tells Docker to forward traffic from port 8080 on your host to port 80 inside the container, allowing you to access the web application by navigating to http://localhost:8080 in your web browser.
+
+
+## Step 3 — Verify the port mapping
+  After running the container with port mapping, you can verify that the ports are correctly mapped by using the docker ps command to list the running containers and their port mappings. You should see an entry similar to:
+      CONTAINER ID   IMAGE         COMMAND                  CREATED          STATUS          PORTS                    NAMES
+      abc123         ImageName     "your_command_here"      10 seconds ago   Up 10 seconds   0.0.0.0:8080->80/tcp     mycontainer 
+  This indicates that port 8080 on the host is mapped to port 80 in the container, confirming that the port mapping is set up correctly. You can now access your application through the specified host port.
+
+
+## Step 4 — Access the application
+  With the port mapping in place, you can access the application running inside the container by navigating to http://localhost:HostPort in your web browser. 
+  For example, if you mapped port 8080 on your host to port 80 in the container, you would go to http://localhost:8080 to access the application. This allows you to interact with the application as if it were running directly on your host machine, while it is actually running inside the isolated environment of the Docker container.
+
+## Step 5 — Clean up
+  After you are done testing or using the application, you can stop and remove the container to free up resources. You can use the following commands:
+      docker stop ContainerID
+      docker rm ContainerID
+  Replace ContainerID with the actual ID of your running container, which you can find using the
+      docker ps
+  command. Stopping the container will halt its execution, and removing it will delete the container from your system, allowing you to start fresh with new containers as needed.
+
+## Conclusion
+  Port mapping is a crucial aspect of working with Docker containers, 
+  as it allows you to expose services running inside the container to the outside world. 
+  By understanding how to set up and verify port mappings, you can effectively manage and access your applications running in Docker containers, 
+  making it easier to develop, test, and deploy your applications in a consistent and isolated environment.
+
+
+## The mental model of port mapping 
+  - The container is like a small ship with its own private network and ports. 
+  - The host machine is like a port where the ship docks. 
+  - Port mapping is like assigning a specific dock (HostPort) for the ship to unload its cargo (ContainerPort). 
+  - When you want to access the cargo, you go to the assigned dock on the host machine, and it will be forwarded to the correct port inside the container where the application is running. 
+  - This allows you to interact with the application running inside the container as if it were running directly on your host machine, while still maintaining the isolation and benefits of using Docker containers.
+
+   I want you to visualize this like a pipeline:
+      
+      Your Browser → Host Machine Port → Docker NAT → Container Port → App
+
+      This pipeline illustrates how a request from your browser goes through the host machine's port, is forwarded by Docker's Network Address Translation (NAT) to the container's port, and finally reaches the application running inside the container. This visualization helps to understand the flow of traffic and how port mapping enables communication between the host and the container.
+
+      So when you write:
+          docker run -p 8080:80 ImageName
+
+          You’re telling Docker:
+             “Listen on 8080 on the host”
+             “Forward that traffic to 80 inside the container”
+          This is the core of port mapping.
+
+          docker run -p 5000:80 nginx
+          In this example, you are telling Docker to listen on port 5000 on the host machine and forward that traffic to port 80 inside the container where the Nginx web server is running. This allows you to access the Nginx server by navigating to http://localhost:5000 in your web browser, while the actual server is running inside the Docker container on port 80.
+
+## Difference between -p and --expose 
+
+    `--expose`
+      • Only documents that the container listens on a port
+      • Does not publish the port to the host
+      • Only useful for Docker networks (container-to-container communication)
+    
+    `-p` or `--publish`
+      • Actually binds a host port
+      • Makes the container reachable from outside
+      • Creates NAT rules
+      
+      So, 
+          docker run --expose 80 nginx
+          → You cannot access it from browser.
+
+      But, 
+          docker run -p 8080:80 nginx
+          → You can access it from browser at http://localhost:8080.
+
+
+## The three types of port publishing in Docker
+    Most people only know -p, but Docker actually supports three different modes of publishing ports.
+    Let’s explore them one by one.
+
+    1) -p HOST:CONTAINER` — Manual port mapping (you choose the host port)
+    
+        Example: docker run -p 8080:80 nginx
+
+    2) -p CONTAINER` — Automatic port mapping (Docker chooses the host port)
+        Example: docker run -p 80 nginx
+        In this case, Docker will automatically assign a random available port on the host machine and map it to port 80 in the container. You can find out which port was assigned by using the docker ps command after the container is running.  
+
+        This is useful when:
+        • You don’t care which host port is used
+        • You want to run many containers without conflicts
+        • You want Docker to manage port allocation
+      
+      You can check the assigned port using:  
+            docker ps 
+
+    3) 3️⃣ `--network host` — No port mapping at all
+
+        This is advanced and only works on Linux.
+        
+        If you run:
+
+            docker run --network host nginx
+
+        Then:
+          • The container shares the host’s network stack
+          • No NAT
+          • No port mapping
+          • Nginx listens directly on host port 80
+          This is extremely fast but removes network isolation.
+
+
+  
+  Hands-on Exercise: 
+      1. Create a simple web application that listens on port 80 inside a Docker container.
+      2. Build a Docker image for the application.
+      3. Run the container with port mapping to expose the application on port 8080 on your host machine.
+      4. Access the application through your web browser using http://localhost:8080.
+      5. Verify that the application is working correctly and then clean up by stopping and removing the container.
+
+      Write the steps to accomplish above exercise in detail with each step to execute the necessary commands and explanations for each step.: 
+      1. Create a simple web application:
+          - You can create a simple HTML file named index.html with the following content:
+              ```html
+              <!DOCTYPE html>
+              <html>
+              <head>
+                  <title>My Docker App</title>
+              </head>
+              <body>
+                  <h1>Hello, Docker!</h1>
+              </body>
+              </html>
+              ```
+          - Save this file in a directory on your local machine.  
+      2. Build a Docker image for the application:
+          - Create a Dockerfile in the same directory with the following content:
+              ```Dockerfile
+              # Use an official Nginx image as the base image
+              FROM nginx:alpine 
+              # Copy the index.html file to the Nginx HTML directory
+              COPY index.html /usr/share/nginx/html/index.html
+              ```
+          - Open a terminal, navigate to the directory containing the Dockerfile and index.html, and run the following command to build the Docker image:
+              ```bash
+              docker build -t my-docker-app .
+              ```
+          - This command tells Docker to build an image with the tag "my-docker-app" using the Dockerfile in the current directory (indicated by the dot).
+      3. Run the container with port mapping:
+          - After the image is built, you can run a container from the image with port mapping using the following command:
+              ```bash
+              docker run -d -p 8080:80 --name my-docker-container my-docker-app
+              ```
+          - This command runs the container in detached mode (-d), maps port 8080 on the host to port 80 in the container, and names the container "my-docker-container".
+      4. Access the application:
+          - Open your web browser and navigate to http://localhost:8080. You should see the message "Hello, Docker!" displayed on the page, indicating that the application is running correctly inside the Docker container and is accessible through the mapped port on your host machine.
+      5. Clean up:
+          - To stop the running container, use the following command:
+              ```bash
+              docker stop my-docker-container
+              ```
+          - To remove the container from your system, use the following command:
+              ```bash
+              docker rm my-docker-container
+              ```
+          - This will stop the container and then remove it, allowing you to free up resources and keep your environment clean for future use. You can also remove the Docker image if you no longer need it using the following command:
+              ```bash
+              docker rmi my-docker-app
+              ```
+          - This command will remove the Docker image from your system, ensuring that you have a clean slate for future projects.
+

@@ -1,0 +1,106 @@
+## Step 1 — The core idea behind Docker volume mapping
+    
+        Containers are ephemeral.
+            If a container is deleted, everything inside it is lost.
+            So Docker gives us two ways to persist data:
+                1️⃣ Bind Mounts
+
+                    Map a host folder → container folder
+                    You control the path.
+
+
+                2️⃣ Named Volumes
+                
+                    Map a named volume → container folder
+                    Docker manages the path and the he storage under /var/lib/docker/volumes.
+            
+            Both achieve persistence, but they behave differently.
+
+## Quick Check: If a container writes logs to /var/log/app, and you delete the container, what happens to those logs without any volume mapping?
+
+    - The logs will be lost because the container is ephemeral and all data inside it will be deleted when the container is removed.
+
+## Step 2 — Bind Mounts (host folder --> Container folder)
+      
+      Definition (simple):
+            A bind mount maps a real folder on your host to a folder inside the container.
+        
+        Example:
+            docker run -v /home/atul/app:/usr/share/nginx/html nginx
+            
+            Meaning:
+                • Left side = host path
+                • Right side = container path
+            
+            So if you edit files in /home/atul/app, they instantly appear inside the container.
+
+        Why bind mounts are useful?
+            • Live code editing (Node.js, Python, React, etc.)
+            • Sharing config files
+            • Debugging
+            • Local development
+
+## Quick Check: If you run, 
+        docker run -v /home/atul/data:/data busybox
+
+            And you create a file inside the container: 
+
+        echo "hello" > /data/msg.txt
+
+            Where will this file actually be stored on your host machine? 
+
+        - The file will be stored in the /home/atul/data directory on the host machine, because the bind mount maps that host folder to the /data folder inside the container.
+
+    A bind mount is literally this:
+            There is no copying.
+            There is no syncing.
+            It is a direct live link.
+        So:
+        • If the container writes → it writes to the host
+        • If the host edits → the container sees it instantly
+        • If the host deletes → the container loses it instantly
+        This is why bind mounts are perfect for development, but risky for production.
+
+    Hands-on:
+        mkdir -p /Users/atulm/bind-demo
+        cd /Users/atulm/bind-demo
+        echo "Hello from host" > message.txt
+        docker run -it --name bind-test -v /Users/atulm/bind-demo:/app \alpine sh
+        ls app/
+        cat app/message.txt
+
+
+
+## Named Volumes (Docker‑managed storage)
+
+    Definition (simple):
+        A named volume is a Docker-managed storage that you can attach to a container.
+    
+    Example:
+        docker run -v mydata:/data busybox
+
+        Here, "mydata" is the name of the volume. Docker will create it if it doesn't exist and manage its storage location.
+
+    Why named volumes are useful?
+        • Data persistence in production
+        • Sharing data between containers
+        • Backing up and restoring data
+        • Decoupling storage from container lifecycle
+
+    
+    Hands-on:
+        1) Create a named volume:
+            docker volume create mydata
+            docker volume ls # to list all volumes and see "mydata" created
+
+        2) Run a container with the named volume:
+            docker run -it --name testbox -v mydata:/appdata busybox
+
+        3) Inside the container, create a file:
+            echo "hello from named volume" > /appdata/msg.txt
+
+        4) Exit the container and run another container with the same volume to see the file:
+            docker run -it --name testbox2 -v mydata:/appdata busybox 
+            cat /appdata/msg.txt
+
+        You should see "hello from named volume" printed, demonstrating that the data persists across containers.

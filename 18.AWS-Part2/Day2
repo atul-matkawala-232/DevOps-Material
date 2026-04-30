@@ -1,0 +1,13 @@
+AWS: Identity and Access Management
+    - Do not login using root user (best practice)
+    - Create individual users and assign them permissions based on their roles and responsibilities.
+    - Use groups to manage permissions for multiple users.
+    - Enable multi-factor authentication (MFA) for added security.
+    - Regularly review and audit user permissions to ensure they are appropriate and up-to-date.
+    - Use IAM roles to grant permissions to AWS services and resources without sharing long-term credentials.
+    - Implement the principle of least privilege by granting only the necessary permissions for users and applications to perform their tasks.
+    - Use IAM policies to define permissions in a structured and organized manner, and attach them to users, groups, or roles as needed.
+    - Monitor and log IAM activity using AWS CloudTrail to track changes and access patterns for security and compliance purposes.
+    - Rotate IAM credentials regularly to reduce the risk of unauthorized access due to compromised credentials.
+
+    
