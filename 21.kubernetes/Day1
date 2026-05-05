@@ -1,0 +1,69 @@
+Kubernetes architecture is divided into two major parts: 
+    - Control Plane [The brain]
+    - Worker Nodes [The muscles]
+
+Control Plane Components: 
+
+    -API server: Acts as the communication gateway. All requests flow through it. 
+    -etcd: Distributed key-value store that stores cluster state. 
+            Example: Remembers desired replicas. 
+    -Controller Manager: Watches cluster state and fixes drifts. 
+            Example: If a pod dies, its triggers its replacement. 
+
+    -Schduler: Decides which node should run a new pod. 
+            Example: Chooses node with enough resources, CPU, memory.
+
+    -Cloud Controller: Connects kubernetes with cloud providers for load balancers, storage etc. 
+
+
+    Control Plane: 
+        API server | Scheduler
+        Controller Manager | etcd | Cloud Controller
+
+Worker Nodes Components:
+    -Kubelet: Ensures containers are running on the node. 
+            Example: Starts pods assigned by scheduler. 
+    -Kube-proxy: Handles networking and load balancing between pods. 
+            Examples: Routes traffic to health pods. 
+
+    -Container Runtime: Software that runs containers. 
+            Example: Docker, containerd, CRI-O.
+            It pulls images and starts containers. 
+
+
+How components work together (Simple Flow) 
+
+    1. User applies deployment.
+    2. API server receives it. 
+    3. etcd stores desired state. 
+    4. Controller manager notices pods needed. 
+    5. Scheduler picks node for pods.
+    6. Kubelet run pods on node.
+    7. Kube-proxy handles networking. 
+
+    user --> API server --> etcd
+            |
+            v
+    Controller Manager --> Scheduler --> Worker Node --> Kubelet --> pod --> Kube-proxy --> Container Runtime. 
+
+Reasoning Examples:
+
+    1. Why control plane is the brain? 
+        - It makes decisions, stores state, and manages the cluster.
+    2. Why scheduler decides pod placement? 
+        - It has the global view of cluster resources and can optimize placement.
+    3. Why controller manager restores failed pods? 
+        - It ensures the cluster matches the desired state, providing self-healing.
+    4. Why Worker node needs a container runtime? 
+        - It abstracts away the details of running containers, allowing Kubernetes to manage them efficiently.
+    5. Why Kube-proxy load balances traffic? 
+        - It ensures that requests are distributed across healthy pods, improving reliability and performance.  
+
+
+Final Summary: 
+
+    Control place manages the overall state and decisions of the cluster. 
+    Worker nodes run the actual workloads (containers) and handle networking. 
+    Together, they form a powerful system for orchestrating containerized applications at scale.
+
+    
