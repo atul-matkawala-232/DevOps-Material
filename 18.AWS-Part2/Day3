@@ -1,0 +1,136 @@
+## AWS EC2 (Elastic Compute Cloud)
+
+    Companies used to buy physical servers. That meant:
+        • Huge upfront cost
+        • Long procurement cycles
+        • Over‑provisioning (buying more than needed)
+        • Maintenance, cooling, power
+        • Slow scaling
+    EC2 solved all of this by offering:
+        - No hardware maintenance
+        - Scale in seconds
+        - Pay only for what you use
+        - Global availability
+
+**An EC2 instance is made of 4 core components:**
+    1. Compute (CPU + RAM)
+    2. Storage (EBS or Instance Store)
+    3. Networking (VPC, Subnet, Security Group)
+    4. AMI (Operating System template).
+
+**AMI: **
+    An AMI (Amazon Machine Image) is like a pre-installed OS snapshot.
+
+    When you launch an EC2 instance, the AMI decides:
+        • Which operating system you get (Ubuntu, Amazon Linux, Windows)
+        • Whether it includes pre-installed software (e.g., Docker, NGINX, Python)
+        • Whether it’s customized for your company
+
+    So the AMI is basically the blueprint for your virtual machine.
+    
+
+## What gives an EC2 instance its “power”?
+    Every EC2 instance has:
+    • vCPUs (virtual CPUs)
+    • RAM
+    • Network bandwidth
+    • Storage performance
+    These come from the instance type you choose.
+
+
+## Instance Type = Hardware Power of Your EC2
+    Since you correctly identified that instance type = CPU + RAM configuration, here’s the deeper intuition:
+    
+    When you choose an instance type like:
+    • t2.micro
+    • m5.large
+    • c6g.xlarge
+    
+    You are really choosing:
+    • how many vCPUs your server gets
+    • how much RAM it has
+    • what kind of processor (Intel / AMD / ARM)
+    • how much network bandwidth
+    • how much storage throughput
+    
+    So the instance type is like choosing the engine of your virtual machine.
+
+
+# The first letter = the instance family = what the instance is optimized for
+    Here are a few examples to make this intuitive:
+    • t → burstable, low‑cost general purpose
+    • m → balanced general purpose
+    • c → compute optimized
+    • r → memory optimized
+    • i → storage optimized
+    • g / p → GPU / accelerated computing.
+
+    So when you see c6g.xlarge, your brain should instantly think:
+    “This is a compute‑optimized instance.”
+
+
+# What does the number represent?
+    Example:
+        • t2.micro
+        • m5.large
+        • c6g.xlarge
+    AWS uses numbers to indicate generation.
+    
+    Newer generation =
+        • better performance
+        • better price/performance
+        • newer CPU architecture
+        • more efficient networking
+
+
+    a) The number in the instance type (like 5, 6, 7) = the hardware generation.
+
+    b) Just like phones (iPhone 12 → 13 → 14), EC2 generations improve over time:
+        • faster CPUs
+        • better network performance
+        • lower cost per compute unit
+        • newer architecture (Intel → AMD → ARM/Graviton)
+    So c6g is newer and more efficient than c5, and m7g is newer than m6g.
+
+
+   # What does the suffix mean? (like “g”, “i”, “a”)
+        Examples:
+        • c6g. --> AWS Graviton (ARM-based)
+        • m5a  --> AMD EPYC
+        • r6i  --> Intel Xeon (x86 architecture)
+        • t4g  
+        These letters tell you which processor architecture the instance uses.
+
+
+# What Makes EC2 Instances Actually Run?
+    Every EC2 instance needs four things to exist:
+    1. AMI → the OS
+    2. Instance Type → the hardware
+    3. Storage (EBS) → the disk
+    4. Networking (VPC + Subnet + Security Group) → connectivity
+
+    EBS = Elastic Block Store = the persistent disk for your EC2 instance
+        Think of it like this:
+        • Your EC2 instance = the computer
+        • Your EBS volume = the SSD / hard disk
+
+        Even if your EC2 instance stops, your EBS volume keeps your data.
+        
+        This is why EBS is called persistent storage.
+
+# EBS Volume Types
+        AWS gives you different types of disks:
+            • Some are optimized for speed
+            • Some for IOPS
+            • Some for throughput
+            • Some for low cost
+
+# EBS is not physically inside the EC2 instance.
+        It’s more like a network‑attached SSD.
+        This means:
+        • your EC2 instance accesses the disk over the network
+        • the disk lives independently of the instance
+        • you can detach it
+        • you can attach it to another instance
+        • it persists even if the instance stops
+        This is why EBS is so flexible.

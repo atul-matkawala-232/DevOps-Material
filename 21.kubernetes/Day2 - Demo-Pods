@@ -1,0 +1,75 @@
+kubectl run nginx --image=nginx
+kubectl get pods
+kubectl describe pod nginx
+kubectl get pods -o wide
+
+
+# A note about creating pods using kubectl run.
+
+    To create a pod from the command line, use the command:
+
+    1) Create an NGINX Pod
+
+          kubectl run nginx --image=nginx
+
+        Note: As of version 1.18, kubectl run (without any arguments such as --generator ) will create a pod instead of a deployment.
+
+    2) To create a deployment using imperative command, use kubectl create:
+
+          kubectl create deployment nginx --image=nginx
+
+    ## Kubernetes Concepts – https://kubernetes.io/docs/concepts/
+    ## Pod Overview- https://kubernetes.io/docs/concepts/workloads/pods/pod-overview/
+
+
+Quiz 2: Pods
+    1. What is a pod in Kubernetes?
+        a) A single container
+        b) A group of one or more containers with shared storage and network
+        c) A node in the cluster
+        d) A type of deployment
+
+    2. Why are pods considered the smallest deployable units in Kubernetes?
+        a) They can run on any node
+        b) They contain one or more containers that share resources
+        c) They are managed by the control plane
+        d) They can be scaled independently
+
+    3. How do pods communicate with each other within a cluster?
+        a) Through shared storage
+        b) Through the Kubernetes API server
+        c) Through the network using IP addresses and ports
+        d) Through environment variables
+
+    4. What happens if a pod dies in Kubernetes?
+        a) It is permanently removed from the cluster
+        b) It triggers its replacement to maintain the desired state
+        c) It causes the entire cluster to fail
+        d) It is automatically restarted without replacement
+
+    5. Which component of Kubernetes is responsible for scheduling pods onto nodes?
+        a) API server
+        b) Controller Manager
+        c) Scheduler
+        d) Cloud Controller
+      
+    6. A Pod can have only one container in it. True or False?
+        a) True
+        b) False
+
+    7. What is the right approach to scale an application in Kubernetes?
+        a) Scale the number of nodes in the cluster
+        b) Scale the number of pods using a deployment
+        c) Scale the number of containers within a pod
+        d) Scale the resources allocated to a single pod
+
+
+
+      Answers:
+        1. b) A group of one or more containers with shared storage and network
+        2. b) They contain one or more containers that share resources  
+        3. c) Through the network using IP addresses and ports
+        4. b) It triggers its replacement to maintain the desired state
+        5. c) Scheduler 
+        6. b) False (A Pod can have multiple containers that share the same network and storage resources)
+        7. b) Scale the number of pods using a deployment (Scaling is typically done by increasing the number of pods managed by a deployment, which allows for better load distribution and fault tolerance.)

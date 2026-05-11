@@ -1,0 +1,70 @@
+# EC2 concepts and Hands-On
+        Launch Templates
+        Spot Requests
+        Savings Plans
+        Reserved Instances
+        Dedicated Hosts
+        Capacity Reservations
+        Capacity Manager
+        New
+        Images
+        AMIs
+        AMI Catalog
+        Elastic Block Store
+        Volumes
+        Snapshots
+        Lifecycle Manager
+        Security Groups
+        Elastic IPs
+        Placement Groups
+        Key Pairs
+        Network Interfaces
+
+
+
+# Concept 1 - Launch Templates 
+    A Launch Template is like a saved blueprint for launching EC2 instances.
+    It stores things like:
+    • AMI
+    • Instance type
+    • Security groups
+    • Key pair
+    • User data (startup script)
+    • Storage configuration
+    • Network settings
+
+    Why it exists:
+        So you don’t have to manually configure EC2 settings every time.
+        You save the configuration once, then reuse it.
+    A real‑world analogy:
+        It’s like saving a “preset” for launching servers.
+        Launch Templates are used heavily in:
+        • Auto Scaling Groups
+        • Spot Fleets
+        • Reproducible deployments
+        • Large‑scale architectures
+
+
+# Concept 2 — Spot Requests 
+
+    - asking AWS for discounted spare capacity
+    - You tell AWS:
+            • what instance type you want
+            • how many
+            • in which AZ
+            • at what maximum price (optional)
+    - AWS then tries to fulfill your request only if spare capacity exists.
+    - If capacity disappears:
+            • your instance is interrupted
+            • you get a 2‑minute warning
+            • AWS stops or terminates it (depending on your setting)
+    - Why Spot Requests exist:
+            To let you run:
+            • batch jobs
+            • data processing
+            • CI/CD runners
+            • stateless workloads
+            • fault‑tolerant systems
+            at a fraction of the cost.
+
+

@@ -1,0 +1,91 @@
+## What is YAML?
+
+    YAML stands for "YAML Ain't Markup Language". It is a human-readable data serialization format that is commonly used for configuration files and data exchange between languages with different data structures.
+
+    In simple terms, YAML is a way to represent data in a structured format that is easy to read and write. It uses indentation to indicate hierarchy and supports various data types such as strings, numbers, lists, and dictionaries.
+
+    Example of a simple YAML file:
+
+    ```yaml
+    name: John Doe
+    age: 30
+    hobbies:
+      - Reading
+      - Traveling
+      - Cooking
+    ```
+    In this example, we have a YAML file that represents a person's name, age, and hobbies. The name is a string, the age is a number, and the hobbies are represented as a list.
+
+## Exercises: 
+
+1) Update the food.yml file to add a list of Vegetables - Carrot, Tomato, Cucumber
+
+Fruits:
+  - Apple
+  - Banana
+  - Orange
+
+
+2) We have updated the food.yml file with nutrition information for Fruits. 
+Similarly update the nutrition information for Vegetables. 
+Use the below table for information. 
+
+Vegetables | Calories | Fat | Carbs
+Carrot | 41 | 0.2g | 10g
+Tomato | 18 | 0.2g | 3.9g
+Cucumber | 16 | 0.1g | 3.6g
+
+Fruits:
+  - Apple:
+        Calories: 95
+        Fat: 0.3
+        Carbs: 25
+  - Banana:
+      Calories: 105
+      Fat: 0.4
+      Carbs: 27
+  - Orange:
+        Calories: 45
+        Fat: 0.1
+        Carbs: 11
+
+
+
+3) Jacob is 30 year old Male working as a Systems Engineer at a firm. 
+Represent Jacob's information (Name, Sex, Age, Title) in YAML format. 
+Create a dictionary named Employee and define properties under it.
+
+
+4) Update the YAML file to represent the Projects assigned to Jacob. 
+Remember Jacob works on Multiple projects 
+- Automation and Support. So remember to use a list.
+
+5) Update the YAML file to include Jacob's pay slips. 
+Add a new property "Payslips" and create a list of pay slip details 
+(Use list of dictionaries). Each payslip detail contains Month and Wage.
+
+Month | Wage
+January | $5000
+February | $4000
+March | $5000
+
+
+
+
+Answers
+
+Employee:
+  Name: Jacob
+  Sex: Male
+  Age: 30
+  Title: Systems Engineer
+  Projects:
+    - Automation
+    - Support
+  Payslips:
+    - Month: January
+      Wage: $5000
+    - Month: February
+      Wage: $4000
+    - Month: March
+      Wage: $5000

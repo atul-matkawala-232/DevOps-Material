@@ -1,0 +1,15 @@
+#!/bin/bash
+# Update package index
+sudo apt-get update -y
+
+# Install Apache web server
+sudo apt-get install apache2 -y
+
+# Enable Apache to start on boot
+sudo systemctl enable apache2
+
+# Start Apache service
+sudo systemctl start apache2
+
+# Optional: Add a simple index.html
+echo "<h1>Welcome to your Apache Web Server on AWS EC2!</h1>" | sudo tee /var/www/html/index.html
