@@ -1,0 +1,19 @@
+apiVersion: v1
+# This tells the Kubernetes API what object to create or manage.
+# This YAML file defines the configuration for a Kubernetes resource.
+# The 'apiVersion' field specifies the versioned schema of the Kubernetes API
+# that you want to use for this resource. It is important to set the correct
+# 'apiVersion' because different versions may support different features or
+# fields. Using the appropriate 'apiVersion' ensures compatibility with your
+# Kubernetes cluster and enables the resource to be processed correctly by the
+# Kubernetes API server.
+kind: Pod
+# The "kind" field specifies the type of Kubernetes resource being defined.
+# For example, it can be "Pod", "Deployment", "Service", etc.
+
+metadata:
+  name: my-simple-pod
+spec:
+  containers:
+    - name: my-container
+      image: nginx:latest # Specifies the container image to use; here, it's the latest Nginx image from Docker Hub

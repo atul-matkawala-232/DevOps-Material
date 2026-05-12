@@ -1,4 +1,4 @@
-# Create COnfig Map
+# Create Config Map
 vim samplecm.yaml
 apiVersion: v1
 kind: Pod
