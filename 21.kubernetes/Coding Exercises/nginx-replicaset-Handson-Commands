@@ -1,0 +1,86 @@
+# kubectl apply -f nginx-replicaset.yaml
+
+# Expected output: 
+    replicaset.apps/nginx-rs created.
+
+## Step 4 — Watch what happens (open a second Terminal tab)
+    In a second Terminal tab, run this — it watches pods in real time:
+        
+        kubectl get pods -w
+
+    Leave this running. You'll see the 3 pods go from Pending → ContainerCreating → Running live as they appear.
+
+
+# Step 5 — Inspect everything
+    run these one by one and observe the output:
+    
+    # See the ReplicaSet
+        kubectl get rs
+
+    # See the 3 pods it created
+        kubectl get pods
+
+    # See pods WITH their labels (notice app=nginx on all of them)
+        kubectl get pods --show-labels
+
+    # Full details — notice Events section at the bottom
+        kubectl describe rs nginx-rs
+
+    The describe output will show you something like:
+
+        Name:         nginx-rs
+        Replicas:     3 current / 3 desired
+        Pods Status:  3 Running / 0 Waiting / 0 Succeeded / 0 Failed
+        Events:
+            Created pod: nginx-rs-xxxxx
+            Created pod: nginx-rs-yyyyy
+            Created pod: nginx-rs-zzzzz
+
+Step 6 — The self-healing demo!!
+    This is the most satisfying part. Delete one pod manually and watch the ReplicaSet immediately create a replacement:
+
+
+    # Get the exact pod names
+        kubectl get pods
+
+    # Delete one (copy a real name from the output above)
+        kubectl delete pod nginx-rs-XXXXX
+
+    Switch to your second tab (where kubectl get pods -w is running) and watch — within 2–3 seconds a new pod appears and starts running automatically. The ReplicaSet noticed the count dropped to 2 and brought it back to 3.
+
+
+# Step 7 — Scale up and down
+
+    # Scale to 5 replicas
+        kubectl scale rs nginx-rs --replicas=5
+
+    # Watch the second tab — 2 new pods appear instantly
+kubectl get pods
+
+    # Scale back down to 2
+        kubectl scale rs nginx-rs --replicas=2
+
+    # Watch — 3 pods are terminated
+        kubectl get pods
+
+Step 8 — Try to "trick" the ReplicaSet
+
+    This demonstrates how the selector works. The RS manages pods by their labels — if you add a matching label to a random pod, the RS will adopt it (and may kill one of its own to stay at the replica count).
+
+First, let's run a standalone pod with the same label:
+
+    kubectl run orphan-pod --image=nginx:1.21 --labels="app=nginx"
+
+    kubectl get pods
+
+
+    This shows the RS doesn't care which pods it manages — it just counts all pods matching its selector.
+
+# Clean up everything 
+
+    # Delete the ReplicaSet (this also deletes all its pods)
+    kubectl delete rs nginx-rs
+
+    # Verify everything is gone
+        kubectl get pods
+        kubectl get rs
