@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kubernetes: Replication Controller & ReplicaSet — Beginner's Guide</title>
+  <style>
+    :root {
+      --bg: #f8f9fa; --surface: #ffffff; --surface2: #f1f3f5;
+      --border: #dee2e6; --text: #212529; --muted: #6c757d;
+      --blue: #1971c2; --blue-bg: #e7f5ff; --blue-border: #74c0fc;
+      --green: #2f9e44; --green-bg: #ebfbee; --green-border: #8ce99a;
+      --amber: #e67700; --amber-bg: #fff9db; --amber-border: #ffe066;
+      --red: #c92a2a; --red-bg: #fff5f5; --red-border: #ffa8a8;
+      --purple: #6741d9; --purple-bg: #f3f0ff; --purple-border: #b197fc;
+      --mono: 'Courier New', monospace;
+      --radius: 8px; --radius-lg: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; font-size: 15px; }
+    .container { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1971c2 0%, #6741d9 100%); color: white; padding: 3rem 2rem; border-radius: var(--radius-lg); margin-bottom: 2.5rem; }
+    .hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .hero p { opacity: 0.88; font-size: 1.05rem; max-width: 600px; }
+    .badge-row { display: flex; gap: 8px; margin-top: 1rem; flex-wrap: wrap; }
+    .badge { display: inline-block; padding: 3px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.35); }
+
+    /* Section headers */
+    .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 1.5rem; overflow: hidden; }
+    .section-header { padding: 1.1rem 1.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 1.05rem; user-select: none; transition: background 0.15s; }
+    .section-header:hover { background: var(--surface2); }
+    .section-header .arrow { font-size: 1.1rem; transition: transform 0.25s; }
+    .section-header.open .arrow { transform: rotate(180deg); }
+    .section-body { display: none; padding: 1.5rem; border-top: 1px solid var(--border); }
+    .section-body.open { display: block; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; overflow-x: auto; }
+    .tab { padding: 10px 20px; font-size: 14px; cursor: pointer; background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted); font-family: inherit; font-weight: 500; white-space: nowrap; transition: all 0.15s; }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .tab:hover:not(.active) { color: var(--text); background: var(--surface2); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* YAML code blocks */
+    .yaml { background: #1e1e2e; color: #cdd6f4; border-radius: var(--radius); padding: 1.2rem 1.4rem; font-family: var(--mono); font-size: 13px; line-height: 1.8; overflow-x: auto; margin: 1rem 0; }
+    .yaml .k { color: #89b4fa; } /* key */
+    .yaml .v { color: #a6e3a1; } /* value */
+    .yaml .s { color: #f9e2af; } /* string */
+    .yaml .c { color: #6c7086; font-style: italic; } /* comment */
+
+    /* Info boxes */
+    .info { background: var(--blue-bg); border-left: 4px solid var(--blue-border); border-radius: 0 var(--radius) var(--radius) 0; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 14px; }
+    .tip  { background: var(--green-bg); border-left: 4px solid var(--green-border); border-radius: 0 var(--radius) var(--radius) 0; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 14px; }
+    .warn { background: var(--amber-bg); border-left: 4px solid var(--amber-border); border-radius: 0 var(--radius) var(--radius) 0; padding: 1rem 1.2rem; margin: 1rem 0; font-size: 14px; }
+    .info strong, .tip strong, .warn strong { display: block; margin-bottom: 4px; }
+
+    /* Simulation */
+    .sim-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 1rem 0; }
+    .sim-btn { padding: 8px 16px; border-radius: var(--radius); border: 1.5px solid var(--border); background: white; font-family: inherit; font-size: 13px; cursor: pointer; font-weight: 500; transition: all 0.15s; }
+    .sim-btn:hover { background: var(--surface2); }
+    .sim-btn.danger { border-color: var(--red-border); color: var(--red); }
+    .sim-btn.primary { border-color: var(--blue-border); color: var(--blue); }
+    .sim-btn.success { border-color: var(--green-border); color: var(--green); }
+    .slider-wrap { display: flex; align-items: center; gap: 8px; }
+    .slider-wrap label { font-size: 13px; color: var(--muted); }
+    .slider-wrap input[type=range] { width: 100px; }
+    .slider-val { font-size: 13px; font-weight: 600; min-width: 18px; }
+    .pod-grid { display: flex; flex-wrap: wrap; gap: 10px; margin: 1rem 0; min-height: 90px; }
+    .pod { width: 78px; height: 78px; border-radius: var(--radius); border: 1.5px solid; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 600; transition: all 0.4s; }
+    .pod.running { background: var(--green-bg); border-color: var(--green-border); color: var(--green); }
+    .pod.dead    { background: var(--red-bg);   border-color: var(--red-border);   color: var(--red);   opacity: 0.7; }
+    .pod.pending { background: var(--amber-bg); border-color: var(--amber-border); color: var(--amber); animation: blink 0.9s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .sim-status { font-size: 13px; color: var(--muted); padding: 8px 0; min-height: 28px; font-weight: 500; }
+
+    /* Compare grid */
+    .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+    @media(max-width:600px){ .compare { grid-template-columns: 1fr; } }
+    .ccard { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.2rem; }
+    .ccard.highlight { border-color: var(--green-border); border-width: 2px; }
+    .ccard h3 { font-size: 15px; margin-bottom: 0.8rem; }
+    .ccard ul { padding-left: 1.2rem; font-size: 13px; color: var(--muted); line-height: 2.1; }
+    .ccard li span.ok   { color: var(--green); font-weight: 600; }
+    .ccard li span.no   { color: var(--red);   font-weight: 600; }
+    .ccard li span.new  { background: var(--blue-bg); color: var(--blue); font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 4px; vertical-align: middle; }
+
+    /* Selector playground */
+    .sel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 1rem 0; }
+    @media(max-width:500px){ .sel-grid { grid-template-columns: 1fr; } }
+    .sel-grid select { width: 100%; padding: 8px; border-radius: var(--radius); border: 1px solid var(--border); font-family: inherit; font-size: 13px; background: white; }
+    .sel-grid label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+    .sel-result { font-size: 14px; font-weight: 600; padding: 10px 14px; border-radius: var(--radius); margin-top: 0.5rem; min-height: 42px; }
+    .sel-result.match { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+    .sel-result.nomatch { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+
+    /* Command table */
+    .cmd-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1rem 0; }
+    .cmd-table th { background: var(--surface2); text-align: left; padding: 8px 12px; border: 1px solid var(--border); font-weight: 600; }
+    .cmd-table td { padding: 8px 12px; border: 1px solid var(--border); }
+    .cmd-table tr:nth-child(even) td { background: var(--surface2); }
+    .cmd-table code { font-family: var(--mono); font-size: 12px; background: #1e1e2e; color: #cdd6f4; padding: 2px 6px; border-radius: 4px; }
+
+    /* Hierarchy diagram */
+    .hierarchy { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 1.5rem 0; font-size: 13px; }
+    .h-box { padding: 10px 28px; border-radius: var(--radius); font-weight: 600; text-align: center; border: 1.5px solid; }
+    .h-deploy { background: var(--purple-bg); border-color: var(--purple-border); color: var(--purple); }
+    .h-rs     { background: var(--blue-bg);   border-color: var(--blue-border);   color: var(--blue);   }
+    .h-pod    { background: var(--green-bg);  border-color: var(--green-border);  color: var(--green);  }
+    .h-arrow  { font-size: 22px; color: var(--muted); line-height: 1.2; }
+    .h-label  { font-size: 11px; color: var(--muted); }
+
+    /* TOC */
+    .toc { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.2rem 1.5rem; margin-bottom: 2rem; }
+    .toc h2 { font-size: 14px; color: var(--muted); margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .toc ol { padding-left: 1.3rem; font-size: 14px; line-height: 2.1; }
+    .toc a { color: var(--blue); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+
+    /* Footer */
+    footer { text-align: center; font-size: 13px; color: var(--muted); padding: 2rem 0 1rem; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>☸️ Kubernetes: Replication Controller &amp; ReplicaSet</h1>
+    <p>A beginner-friendly, interactive guide to keeping your apps alive and scaled in Kubernetes.</p>
+    <div class="badge-row">
+      <span class="badge">Beginner Friendly</span>
+      <span class="badge">Interactive Simulation</span>
+      <span class="badge">YAML Examples</span>
+    </div>
+  </div>
+
+  <!-- Table of Contents -->
+  <div class="toc">
+    <h2>📋 Contents</h2>
+    <ol>
+      <li><a href="#problem">The Problem — Why We Need This</a></li>
+      <li><a href="#rc">Replication Controller (RC)</a></li>
+      <li><a href="#rs">ReplicaSet (RS)</a></li>
+      <li><a href="#simulation">Live Pod Simulation</a></li>
+      <li><a href="#selectors">Selectors Explained</a></li>
+      <li><a href="#compare">RC vs RS — Side-by-Side</a></li>
+      <li><a href="#hierarchy">The Bigger Picture</a></li>
+      <li><a href="#commands">Key Commands Cheat Sheet</a></li>
+    </ol>
+  </div>
+
+  <!-- SECTION 1: The Problem -->
+  <div class="section" id="problem">
+    <div class="section-header open" onclick="toggle(this)">
+      <span>1️⃣ &nbsp;The Problem — Why We Need This</span>
+      <span class="arrow open">▼</span>
+    </div>
+    <div class="section-body open">
+      <p>Imagine you deploy your app as a single <strong>Pod</strong> (Kubernetes's smallest unit — basically one running container). That pod crashes at 3 AM. Your app goes down. Nobody is happy.</p>
+      <br>
+      <p>Kubernetes needs a <strong>manager</strong> that constantly watches pods and automatically:</p>
+      <ul style="padding-left:1.4rem;line-height:2.2;margin-top:0.5rem">
+        <li>Detects when a pod dies and <strong>creates a replacement</strong></li>
+        <li>Ensures you always have <strong>exactly N copies</strong> running</li>
+        <li>Removes extra pods if there are <strong>too many</strong></li>
+      </ul>
+      <div class="tip">
+        <strong>💡 Real-world analogy</strong>
+        Think of it like a hospital shift manager who needs exactly 3 nurses on duty at all times. If one goes home sick, the manager immediately calls in a replacement. If 4 show up by mistake, one is sent home.
+      </div>
+      <p>This manager role is played by the <strong>Replication Controller</strong> (older) and <strong>ReplicaSet</strong> (modern).</p>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Replication Controller -->
+  <div class="section" id="rc">
+    <div class="section-header" onclick="toggle(this)">
+      <span>2️⃣ &nbsp;Replication Controller (RC)</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <p>The <strong>Replication Controller</strong> is the original mechanism introduced in Kubernetes v1. It continuously watches the cluster and ensures a specified number of pod replicas are always running.</p>
+
+      <div class="info">
+        <strong>🔑 Key concept: The Reconciliation Loop</strong>
+        Every few seconds the RC asks: "How many pods matching my selector are running?"<br>
+        If <em>actual &lt; desired</em> → create more pods.<br>
+        If <em>actual &gt; desired</em> → delete some pods.
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this,'rc-yaml')">YAML Example</button>
+        <button class="tab" onclick="switchTab(this,'rc-explain')">Line-by-Line Explanation</button>
+        <button class="tab" onclick="switchTab(this,'rc-lifecycle')">Lifecycle</button>
+      </div>
+
+      <div class="tab-panel active" id="rc-yaml">
+        <pre class="yaml"><span class="k">apiVersion</span>: <span class="v">v1</span>
+<span class="k">kind</span>: <span class="v">ReplicationController</span>
+<span class="k">metadata</span>:
+  <span class="k">name</span>: <span class="s">nginx-rc</span>
+  <span class="k">labels</span>:
+    <span class="k">app</span>: <span class="s">nginx</span>
+<span class="k">spec</span>:
+  <span class="k">replicas</span>: <span class="v">3</span>         <span class="c"># keep exactly 3 pods running at all times</span>
+  <span class="k">selector</span>:           <span class="c"># find pods using this label</span>
+    <span class="k">app</span>: <span class="s">nginx</span>
+  <span class="k">template</span>:           <span class="c"># blueprint for creating new pods</span>
+    <span class="k">metadata</span>:
+      <span class="k">labels</span>:
+        <span class="k">app</span>: <span class="s">nginx</span>   <span class="c"># MUST match the selector above</span>
+    <span class="k">spec</span>:
+      <span class="k">containers</span>:
+      - <span class="k">name</span>: <span class="s">nginx</span>
+        <span class="k">image</span>: <span class="s">nginx:1.21</span>
+        <span class="k">ports</span>:
+        - <span class="k">containerPort</span>: <span class="v">80</span></pre>
+      </div>
+
+      <div class="tab-panel" id="rc-explain">
+        <table class="cmd-table">
+          <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><code>apiVersion: v1</code></td><td>RC belongs to the core API (v1). Older than apps/v1.</td></tr>
+            <tr><td><code>kind: ReplicationController</code></td><td>Tells Kubernetes what object you're creating.</td></tr>
+            <tr><td><code>metadata.name</code></td><td>Name of this RC — used in kubectl commands.</td></tr>
+            <tr><td><code>spec.replicas: 3</code></td><td>The desired number of running pods. RC will always aim for this.</td></tr>
+            <tr><td><code>spec.selector</code></td><td>How RC identifies "its" pods — by label matching.</td></tr>
+            <tr><td><code>spec.template</code></td><td>The pod blueprint. RC uses this to create new pods when needed.</td></tr>
+            <tr><td><code>template.metadata.labels</code></td><td>Must match the selector — so the RC recognises the pods it creates.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tab-panel" id="rc-lifecycle">
+        <ol style="padding-left:1.4rem;line-height:2.4;font-size:14px;">
+          <li>You apply the YAML → Kubernetes creates the RC object.</li>
+          <li>RC checks: "0 pods running, I need 3." → Creates 3 pods using the template.</li>
+          <li>A node crashes, 1 pod dies → RC detects actual=2, desired=3 → Creates 1 new pod.</li>
+          <li>You run <code>kubectl scale rc nginx-rc --replicas=5</code> → RC creates 2 more pods.</li>
+          <li>You delete the RC → All its pods are deleted too.</li>
+        </ol>
+        <div class="warn">
+          <strong>⚠️ Limitation</strong>
+          RC uses equality-based selectors only: <code>app=nginx</code>. You can't say "match nginx OR apache" — for that, you need a ReplicaSet.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: ReplicaSet -->
+  <div class="section" id="rs">
+    <div class="section-header" onclick="toggle(this)">
+      <span>3️⃣ &nbsp;ReplicaSet (RS)</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <p>The <strong>ReplicaSet</strong> is the modern successor to the Replication Controller. It does everything RC does, but adds <strong>set-based selectors</strong> — allowing richer label matching expressions.</p>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this,'rs-yaml')">YAML Example</button>
+        <button class="tab" onclick="switchTab(this,'rs-explain')">What Changed vs RC</button>
+      </div>
+
+      <div class="tab-panel active" id="rs-yaml">
+        <pre class="yaml"><span class="k">apiVersion</span>: <span class="v">apps/v1</span>      <span class="c"># ← changed from v1</span>
+<span class="k">kind</span>: <span class="v">ReplicaSet</span>
+<span class="k">metadata</span>:
+  <span class="k">name</span>: <span class="s">nginx-rs</span>
+<span class="k">spec</span>:
+  <span class="k">replicas</span>: <span class="v">3</span>
+  <span class="k">selector</span>:
+    <span class="k">matchLabels</span>:           <span class="c"># simple equality match (like RC)</span>
+      <span class="k">app</span>: <span class="s">nginx</span>
+    <span class="k">matchExpressions</span>:      <span class="c"># ← NEW: set-based matching</span>
+    - <span class="k">key</span>: <span class="s">environment</span>
+      <span class="k">operator</span>: <span class="v">In</span>
+      <span class="k">values</span>: [<span class="s">production</span>, <span class="s">staging</span>]  <span class="c"># match either value</span>
+    - <span class="k">key</span>: <span class="s">tier</span>
+      <span class="k">operator</span>: <span class="v">Exists</span>              <span class="c"># just needs the key to exist</span>
+  <span class="k">template</span>:
+    <span class="k">metadata</span>:
+      <span class="k">labels</span>:
+        <span class="k">app</span>: <span class="s">nginx</span>
+        <span class="k">environment</span>: <span class="s">production</span>
+        <span class="k">tier</span>: <span class="s">frontend</span>
+    <span class="k">spec</span>:
+      <span class="k">containers</span>:
+      - <span class="k">name</span>: <span class="s">nginx</span>
+        <span class="k">image</span>: <span class="s">nginx:1.21</span>
+        <span class="k">ports</span>:
+        - <span class="k">containerPort</span>: <span class="v">80</span></pre>
+      </div>
+
+      <div class="tab-panel" id="rs-explain">
+        <table class="cmd-table">
+          <thead><tr><th>Feature</th><th>Replication Controller</th><th>ReplicaSet</th></tr></thead>
+          <tbody>
+            <tr><td>apiVersion</td><td><code>v1</code></td><td><code>apps/v1</code></td></tr>
+            <tr><td>Selector type</td><td>Equality only (<code>app=nginx</code>)</td><td>Equality + Set-based</td></tr>
+            <tr><td>matchLabels</td><td>✅</td><td>✅</td></tr>
+            <tr><td>matchExpressions</td><td>❌</td><td>✅ (In, NotIn, Exists, DoesNotExist)</td></tr>
+            <tr><td>Used by Deployments</td><td>❌</td><td>✅</td></tr>
+            <tr><td>Status</td><td>Legacy (still works)</td><td>Current standard</td></tr>
+          </tbody>
+        </table>
+        <div class="tip">
+          <strong>💡 matchExpressions operators</strong>
+          <ul style="padding-left:1.2rem;line-height:2;margin-top:0.4rem">
+            <li><strong>In</strong> — label value must be one of the listed values</li>
+            <li><strong>NotIn</strong> — label value must NOT be in the list</li>
+            <li><strong>Exists</strong> — label key must exist (any value)</li>
+            <li><strong>DoesNotExist</strong> — label key must not be present</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: Live Simulation -->
+  <div class="section" id="simulation">
+    <div class="section-header" onclick="toggle(this)">
+      <span>4️⃣ &nbsp;Live Pod Simulation — Try It!</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <p>This simulation shows how the <strong>reconciliation loop</strong> works. Kill a pod and watch the controller instantly spin up a replacement.</p>
+
+      <div class="sim-controls">
+        <div class="slider-wrap">
+          <label>Desired replicas:</label>
+          <input type="range" min="1" max="7" value="3" id="sim-slider" oninput="setDesired(this.value)">
+          <span class="slider-val" id="sim-desired-val">3</span>
+        </div>
+        <button class="sim-btn danger" onclick="killPod()">💥 Kill a pod</button>
+        <button class="sim-btn primary" onclick="addPod()">➕ Add extra pod</button>
+        <button class="sim-btn success" onclick="resetSim()">🔄 Reset</button>
+      </div>
+
+      <div class="pod-grid" id="sim-pods"></div>
+      <div class="sim-status" id="sim-status">✅ Running 3/3 pods — healthy</div>
+
+      <div class="info" style="margin-top:1rem">
+        <strong>What's happening under the hood:</strong>
+        The controller runs a loop every few seconds: <em>actual pods = ?</em> If actual ≠ desired, it creates or deletes pods to match. "Pending" means the new pod is being scheduled to a node.
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: Selectors -->
+  <div class="section" id="selectors">
+    <div class="section-header" onclick="toggle(this)">
+      <span>5️⃣ &nbsp;Selectors Explained — Interactive Playground</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <p>Selectors are how the controller <strong>identifies which pods belong to it</strong>. Think of labels as sticky tags on pods, and selectors as the filter rules.</p>
+
+      <pre class="yaml"><span class="c"># This ReplicaSet uses these selector rules:</span>
+<span class="k">selector</span>:
+  <span class="k">matchLabels</span>:
+    <span class="k">app</span>: <span class="s">nginx</span>               <span class="c"># app must equal "nginx"</span>
+  <span class="k">matchExpressions</span>:
+  - <span class="k">key</span>: <span class="s">environment</span>
+    <span class="k">operator</span>: <span class="v">In</span>
+    <span class="k">values</span>: [<span class="s">production</span>, <span class="s">staging</span>]  <span class="c"># "dev" would be rejected</span>
+  - <span class="k">key</span>: <span class="s">tier</span>
+    <span class="k">operator</span>: <span class="v">Exists</span>              <span class="c"># any value ok, but key must exist</span></pre>
+
+      <p style="font-size:14px;color:var(--muted);margin:1rem 0 0.5rem"><strong>Try different pod label combinations — does this pod match?</strong></p>
+      <div class="sel-grid">
+        <div>
+          <label>app label</label>
+          <select id="sel-app" onchange="checkSel()">
+            <option>nginx</option>
+            <option>apache</option>
+            <option>mysql</option>
+          </select>
+        </div>
+        <div>
+          <label>environment label</label>
+          <select id="sel-env" onchange="checkSel()">
+            <option>production</option>
+            <option>staging</option>
+            <option>dev</option>
+          </select>
+        </div>
+        <div>
+          <label>tier label</label>
+          <select id="sel-tier" onchange="checkSel()">
+            <option value="yes">frontend</option>
+            <option value="yes">backend</option>
+            <option value="no">(no tier label)</option>
+          </select>
+        </div>
+      </div>
+      <div class="sel-result" id="sel-result">—</div>
+    </div>
+  </div>
+
+  <!-- SECTION 6: Compare -->
+  <div class="section" id="compare">
+    <div class="section-header" onclick="toggle(this)">
+      <span>6️⃣ &nbsp;RC vs RS — Side-by-Side Comparison</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <div class="compare">
+        <div class="ccard">
+          <h3>🔵 Replication Controller</h3>
+          <ul>
+            <li>Kubernetes v1 — the original</li>
+            <li>apiVersion: <code>v1</code></li>
+            <li>Equality selectors only</li>
+            <li><span class="no">✗</span> matchExpressions</li>
+            <li><span class="no">✗</span> Used by Deployments</li>
+            <li>Still functional but <em>legacy</em></li>
+            <li><span class="no">✗</span> Not actively developed</li>
+          </ul>
+        </div>
+        <div class="ccard highlight">
+          <h3>🟢 ReplicaSet <span style="font-size:11px;background:var(--green-bg);color:var(--green);padding:2px 7px;border-radius:4px;vertical-align:middle">Recommended</span></h3>
+          <ul>
+            <li>Introduced in Kubernetes v1.2</li>
+            <li>apiVersion: <code>apps/v1</code></li>
+            <li>Equality + set-based selectors</li>
+            <li><span class="ok">✓</span> matchExpressions <span class="new">NEW</span></li>
+            <li><span class="ok">✓</span> Managed by Deployments</li>
+            <li>Current standard</li>
+            <li><span class="ok">✓</span> Actively maintained</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="warn">
+        <strong>⚠️ Production advice</strong>
+        In real production, you should rarely create a ReplicaSet directly. Instead, use a <strong>Deployment</strong> — which creates and manages a ReplicaSet automatically, and adds rolling updates and rollback capabilities on top.
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 7: Hierarchy -->
+  <div class="section" id="hierarchy">
+    <div class="section-header" onclick="toggle(this)">
+      <span>7️⃣ &nbsp;The Bigger Picture — Where RC/RS Fit</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <p>Here's how these objects relate to each other in a real Kubernetes setup:</p>
+      <div class="hierarchy">
+        <div class="h-box h-deploy">Deployment</div>
+        <div class="h-arrow">↓</div>
+        <div class="h-label">creates &amp; manages</div>
+        <div class="h-box h-rs">ReplicaSet</div>
+        <div class="h-arrow">↓</div>
+        <div class="h-label">creates &amp; manages</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+          <div class="h-box h-pod">Pod 1</div>
+          <div class="h-box h-pod">Pod 2</div>
+          <div class="h-box h-pod">Pod 3</div>
+        </div>
+      </div>
+      <div class="info">
+        <strong>🔑 What Deployment adds on top of ReplicaSet:</strong>
+        <ul style="padding-left:1.2rem;line-height:2;margin-top:0.4rem">
+          <li><strong>Rolling updates</strong> — update pods one by one, zero downtime</li>
+          <li><strong>Rollback</strong> — instantly revert to a previous version if things go wrong</li>
+          <li><strong>History</strong> — keeps old ReplicaSets around for rollback</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 8: Commands -->
+  <div class="section" id="commands">
+    <div class="section-header" onclick="toggle(this)">
+      <span>8️⃣ &nbsp;Key Commands Cheat Sheet</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table class="cmd-table">
+        <thead><tr><th>Task</th><th>Command</th></tr></thead>
+        <tbody>
+          <tr><td>Create RC or RS from file</td><td><code>kubectl apply -f file.yaml</code></td></tr>
+          <tr><td>List Replication Controllers</td><td><code>kubectl get rc</code></td></tr>
+          <tr><td>List ReplicaSets</td><td><code>kubectl get rs</code></td></tr>
+          <tr><td>Describe an RC/RS in detail</td><td><code>kubectl describe rc nginx-rc</code></td></tr>
+          <tr><td>Scale an RC to 5 replicas</td><td><code>kubectl scale rc nginx-rc --replicas=5</code></td></tr>
+          <tr><td>Scale a ReplicaSet to 5</td><td><code>kubectl scale rs nginx-rs --replicas=5</code></td></tr>
+          <tr><td>Delete an RC (and its pods)</td><td><code>kubectl delete rc nginx-rc</code></td></tr>
+          <tr><td>Delete RC but keep pods</td><td><code>kubectl delete rc nginx-rc --cascade=orphan</code></td></tr>
+          <tr><td>Watch pods in real-time</td><td><code>kubectl get pods -w</code></td></tr>
+          <tr><td>See all labels on pods</td><td><code>kubectl get pods --show-labels</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    Built as an interactive learning resource. Render this file locally or host on GitHub Pages — no build step required.
+  </footer>
+
+</div><!-- /container -->
+
+<script>
+  // ── Accordion toggle ──
+  function toggle(header) {
+    header.classList.toggle('open');
+    header.querySelector('.arrow').classList.toggle('open');
+    const body = header.nextElementSibling;
+    body.classList.toggle('open');
+  }
+
+  // ── Tab switching ──
+  function switchTab(btn, panelId) {
+    const section = btn.closest('.section-body');
+    section.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    section.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(panelId).classList.add('active');
+  }
+
+  // ── Pod Simulation ──
+  let desired = 3;
+  let pods = [];
+
+  function renderPods() {
+    const grid = document.getElementById('sim-pods');
+    grid.innerHTML = '';
+    pods.forEach((state, i) => {
+      const d = document.createElement('div');
+      d.className = 'pod ' + state;
+      const icons = { running: '🟢', dead: '💀', pending: '⏳' };
+      d.innerHTML = `<span style="font-size:20px">${icons[state]}</span><span>pod-${i+1}</span><span>${state}</span>`;
+      grid.appendChild(d);
+    });
+    updateStatus();
+  }
+
+  function updateStatus() {
+    const running = pods.filter(p => p === 'running').length;
+    const pending = pods.filter(p => p === 'pending').length;
+    const el = document.getElementById('sim-status');
+    if (pending > 0) {
+      el.textContent = `⏳ Controller noticed change — scheduling ${pending} pod(s)...`;
+      el.style.color = 'var(--amber)';
+    } else if (running === desired) {
+      el.textContent = `✅ Running ${running}/${desired} pods — healthy`;
+      el.style.color = 'var(--green)';
+    } else {
+      el.textContent = `Running ${running}/${desired} pods`;
+      el.style.color = 'var(--muted)';
+    }
+  }
+
+  function setDesired(v) {
+    desired = parseInt(v);
+    document.getElementById('sim-desired-val').textContent = v;
+    while (pods.filter(p => p !== 'dead').length < desired) pods.push('pending');
+    // schedule pending → running
+    pods.forEach((p, i) => {
+      if (p === 'pending') {
+        setTimeout(() => { if (pods[i] === 'pending') { pods[i] = 'running'; renderPods(); } }, 1200);
+      }
+    });
+    // trim excess running pods
+    let extras = pods.filter(p => p === 'running').length - desired;
+    if (extras > 0) {
+      for (let i = pods.length - 1; i >= 0 && extras > 0; i--) {
+        if (pods[i] === 'running') { pods.splice(i, 1); extras--; }
+      }
+    }
+    renderPods();
+  }
+
+  function killPod() {
+    const idx = pods.indexOf('running');
+    if (idx === -1) return;
+    pods[idx] = 'dead';
+    renderPods();
+    // RC/RS replaces it
+    setTimeout(() => {
+      const di = pods.indexOf('dead');
+      if (di !== -1) pods[di] = 'pending';
+      renderPods();
+      setTimeout(() => {
+        const pi = pods.indexOf('pending');
+        if (pi !== -1) pods[pi] = 'running';
+        renderPods();
+      }, 1400);
+    }, 500);
+  }
+
+  function addPod() {
+    pods.push('running');
+    renderPods();
+    // RS would delete the extra
+    setTimeout(() => {
+      if (pods.filter(p => p === 'running').length > desired) {
+        const extras = pods.filter(p => p === 'running').length - desired;
+        for (let i = pods.length - 1; i >= 0 && pods.filter(p=>p==='running').length > desired; i--) {
+          if (pods[i] === 'running') { pods.splice(i, 1); break; }
+        }
+        renderPods();
+      }
+    }, 1800);
+  }
+
+  function resetSim() {
+    desired = 3;
+    document.getElementById('sim-slider').value = 3;
+    document.getElementById('sim-desired-val').textContent = 3;
+    pods = ['running','running','running'];
+    renderPods();
+  }
+
+  resetSim();
+
+  // ── Selector Playground ──
+  function checkSel() {
+    const app  = document.getElementById('sel-app').value;
+    const env  = document.getElementById('sel-env').value;
+    const tier = document.getElementById('sel-tier').value;
+    const appOk  = app === 'nginx';
+    const envOk  = ['production','staging'].includes(env);
+    const tierOk = tier === 'yes';
+    const match  = appOk && envOk && tierOk;
+    const el = document.getElementById('sel-result');
+    el.className = 'sel-result ' + (match ? 'match' : 'nomatch');
+    if (match) {
+      el.textContent = '✅ Match! This pod satisfies all selector rules — the ReplicaSet will manage it.';
+    } else {
+      const reasons = [];
+      if (!appOk)  reasons.push(`app="${app}" ≠ "nginx" (matchLabels)`);
+      if (!envOk)  reasons.push(`environment="${env}" not In [production, staging]`);
+      if (!tierOk) reasons.push(`tier label is missing (Exists check fails)`);
+      el.textContent = '❌ No match — ' + reasons.join(' | ');
+    }
+  }
+  checkSel();
+</script>
+</body>
+</html>

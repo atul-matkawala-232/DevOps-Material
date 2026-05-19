@@ -1,0 +1,21 @@
+# AWS S3 (Simple Storage Service)
+
+    AWS S3 (Simple Storage Service) is a scalable object storage service provided by Amazon Web Services. It allows users to store and retrieve any amount of data at any time from anywhere on the web. S3 is commonly used for backup, archiving, content distribution, and as a data lake for analytics.
+
+    Key features:
+    - Stores data as objects within buckets.
+    - Provides high durability (99.999999999%) and availability.
+    - Supports versioning, lifecycle policies, and access control.
+    - Integrates with other AWS services.
+    - Offers multiple storage classes for cost optimization.
+
+    Common use cases include website hosting, data backup, disaster recovery, and big data analytics.
+
+
+    Important Points to remember: 
+    - S3 is a global service.
+    - S3 is object storage.
+    - Using S3 - we create buckets. Buckets are created to store object storage data.  
+    - Buckets are regional 
+    - 11 9's --> 99.999999999%
+    - Bucket names must be globally unique. 
