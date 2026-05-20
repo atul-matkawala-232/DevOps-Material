@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Kubernetes Services — Hands-On Guide</title>
+<style>
+:root{
+  --bg:#f0f2f5; --surface:#fff; --surface2:#f8f9fa; --surface3:#f1f3f5;
+  --border:#dee2e6; --text:#212529; --muted:#868e96; --muted2:#adb5bd;
+  --blue:#1971c2; --blue-l:#e7f5ff; --blue-b:#74c0fc;
+  --green:#2f9e44; --green-l:#ebfbee; --green-b:#69db7c;
+  --orange:#d95500; --orange-l:#fff4e6; --orange-b:#ffc078;
+  --purple:#6741d9; --purple-l:#f3f0ff; --purple-b:#b197fc;
+  --red:#c92a2a; --red-l:#fff5f5; --red-b:#ffa8a8;
+  --amber:#e67700; --amber-l:#fff9db; --amber-b:#ffe066;
+  --code-bg:#1e1e2e; --code-fg:#cdd6f4;
+  --radius:8px; --radius-lg:14px; --radius-xl:18px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --shadow-lg:0 4px 24px rgba(0,0,0,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:15px;}
+a{color:var(--blue);}
+
+/* ── Layout ── */
+.shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh;}
+@media(max-width:800px){.shell{grid-template-columns:1fr;}}
+
+/* ── Sidebar ── */
+.sidebar{background:var(--code-bg);color:#cdd6f4;padding:1.5rem 0;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-logo{padding:0 1.4rem 1.2rem;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:1rem;}
+.sidebar-logo h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.01em;}
+.sidebar-logo p{font-size:11px;color:#6c7086;margin-top:2px;}
+.nav-section{padding:0.5rem 1.4rem 0.2rem;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#45475a;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 1.4rem;font-size:13px;color:#cdd6f4;cursor:pointer;transition:all .15s;border-left:3px solid transparent;text-decoration:none;}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.nav-item.active{background:rgba(25,113,194,.18);border-left-color:#74c0fc;color:#89b4fa;}
+.nav-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.nav-item .step-num{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;}
+.nav-item.done .step-num{background:#2f9e44;color:#fff;}
+.nav-item.active .step-num{background:#1971c2;color:#fff;}
+.sidebar-progress{padding:1rem 1.4rem;border-top:1px solid rgba(255,255,255,.08);margin-top:auto;}
+.progress-label{font-size:11px;color:#6c7086;margin-bottom:6px;}
+.progress-bar{height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#1971c2,#6741d9);border-radius:2px;transition:width .4s;}
+
+/* ── Main ── */
+.main{padding:2rem 2.5rem;max-width:860px;}
+@media(max-width:800px){.main{padding:1.2rem 1rem;}}
+
+/* ── Hero ── */
+.hero{background:linear-gradient(135deg,#0c4a8a 0%,#6741d9 100%);color:#fff;border-radius:var(--radius-xl);padding:2.5rem 2rem;margin-bottom:2rem;box-shadow:var(--shadow-lg);}
+.hero h2{font-size:1.7rem;font-weight:800;letter-spacing:-.02em;margin-bottom:.4rem;}
+.hero p{opacity:.85;max-width:560px;font-size:1rem;}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:1rem;}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:99px;font-size:11.5px;font-weight:600;background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.3);}
+
+/* ── Cards / Sections ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1.5rem;box-shadow:var(--shadow);overflow:hidden;}
+.card-header{padding:1.1rem 1.5rem;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.card-icon{width:36px;height:36px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.card-title{font-weight:700;font-size:1.05rem;}
+.card-subtitle{font-size:12px;color:var(--muted);margin-top:1px;}
+.card-body{padding:1.5rem;}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:1.5rem;overflow-x:auto;}
+.tab{padding:9px 18px;font-size:13px;cursor:pointer;background:none;border:none;border-bottom:2.5px solid transparent;color:var(--muted);font-family:inherit;font-weight:500;white-space:nowrap;transition:all .15s;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab:hover:not(.active){color:var(--text);background:var(--surface2);}
+.tab-panel{display:none;} .tab-panel.active{display:block;}
+
+/* ── Steps ── */
+.steps{display:flex;flex-direction:column;gap:1rem;}
+.step{display:grid;grid-template-columns:44px 1fr;gap:0;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:box-shadow .2s;}
+.step:hover{box-shadow:var(--shadow);}
+.step-num-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:1rem 0;background:var(--surface2);border-right:1px solid var(--border);}
+.step-circle{width:28px;height:28px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;}
+.step-circle.done{background:var(--green);}
+.step-body{padding:1rem 1.2rem;}
+.step-title{font-weight:600;font-size:14px;margin-bottom:.5rem;}
+.step-note{font-size:12.5px;color:var(--muted);background:var(--amber-l);border:1px solid var(--amber-b);border-radius:var(--radius);padding:7px 12px;margin-top:.6rem;}
+
+/* ── Code blocks ── */
+.code-wrap{position:relative;margin:.7rem 0;}
+.code-label{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;}
+pre.code{background:var(--code-bg);color:var(--code-fg);border-radius:var(--radius);padding:1rem 1.2rem;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.75;overflow-x:auto;white-space:pre;}
+.copy-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:#cdd6f4;font-size:11px;padding:4px 10px;cursor:pointer;transition:background .15s;font-family:inherit;}
+.copy-btn:hover{background:rgba(255,255,255,.2);}
+.copy-btn.copied{background:rgba(47,158,68,.3);border-color:#69db7c;color:#69db7c;}
+
+/* ── Info / tip boxes ── */
+.infobox{border-radius:var(--radius);padding:1rem 1.2rem;margin:.8rem 0;font-size:13.5px;line-height:1.65;}
+.infobox.blue{background:var(--blue-l);border-left:4px solid var(--blue-b);}
+.infobox.green{background:var(--green-l);border-left:4px solid var(--green-b);}
+.infobox.orange{background:var(--orange-l);border-left:4px solid var(--orange-b);}
+.infobox.amber{background:var(--amber-l);border-left:4px solid var(--amber-b);}
+.infobox.purple{background:var(--purple-l);border-left:4px solid var(--purple-b);}
+.infobox.red{background:var(--red-l);border-left:4px solid var(--red-b);}
+.infobox strong{display:block;margin-bottom:4px;font-size:13px;}
+
+/* ── Terminal sim ── */
+.terminal{background:#141422;border-radius:var(--radius-lg);overflow:hidden;margin:.8rem 0;box-shadow:var(--shadow-lg);}
+.terminal-bar{background:#2a2a3e;padding:10px 14px;display:flex;align-items:center;gap:8px;}
+.t-dot{width:12px;height:12px;border-radius:50%;}
+.t-dot.red{background:#ff5f56;} .t-dot.yellow{background:#ffbd2e;} .t-dot.green{background:#27c93f;}
+.terminal-bar span{font-size:12px;color:#6c7086;margin-left:6px;font-family:'Courier New',monospace;}
+.terminal-body{padding:1rem 1.2rem;font-family:'Courier New',monospace;font-size:12.5px;line-height:1.8;color:#cdd6f4;min-height:60px;}
+.t-prompt{color:#89b4fa;} .t-cmd{color:#cdd6f4;} .t-out{color:#a6e3a1;}
+.t-muted{color:#6c7086;} .t-err{color:#f38ba8;}
+.run-btn{display:inline-flex;align-items:center;gap:6px;margin-top:.5rem;padding:7px 16px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:12.5px;font-weight:600;cursor:pointer;transition:background .15s;font-family:inherit;}
+.run-btn:hover{background:#1462ae;} .run-btn:active{transform:scale(.97);}
+
+/* ── Service visualiser ── */
+.svc-viz{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin:.8rem 0;}
+.svc-viz h4{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:1rem;}
+.flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center;}
+.flow-node{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.flow-box{padding:10px 18px;border-radius:var(--radius);font-size:12px;font-weight:600;text-align:center;border:2px solid;min-width:90px;}
+.flow-box.browser{background:#fff;border-color:var(--border);color:var(--text);}
+.flow-box.svc{color:#fff;border-color:transparent;}
+.flow-box.svc.clusterip{background:var(--blue);}
+.flow-box.svc.nodeport{background:var(--orange);}
+.flow-box.svc.lb{background:var(--green);}
+.flow-box.pod{background:var(--surface);border-color:var(--blue-b);color:var(--blue);}
+.flow-arrow{font-size:20px;color:var(--muted2);padding:0 6px;}
+.flow-pods{display:flex;flex-direction:column;gap:6px;}
+.flow-note{font-size:11px;color:var(--muted);margin-top:4px;}
+
+/* ── Comparison table ── */
+.compare-tbl{width:100%;border-collapse:collapse;font-size:13px;margin:.8rem 0;}
+.compare-tbl th{background:var(--text);color:#fff;padding:10px 14px;text-align:left;font-size:12px;}
+.compare-tbl td{padding:9px 14px;border-bottom:1px solid var(--border);}
+.compare-tbl tr:last-child td{border-bottom:none;}
+.compare-tbl tr:nth-child(even) td{background:var(--surface2);}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;}
+.pill.g{background:var(--green-l);color:var(--green);}
+.pill.r{background:var(--red-l);color:var(--red);}
+.pill.b{background:var(--blue-l);color:var(--blue);}
+.pill.o{background:var(--orange-l);color:var(--orange);}
+
+/* ── Progress tracker ── */
+.tracker{display:flex;gap:0;margin-bottom:1.5rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow);}
+.tracker-item{flex:1;padding:.7rem .5rem;text-align:center;font-size:11px;font-weight:600;border-right:1px solid var(--border);cursor:pointer;transition:background .15s;color:var(--muted);}
+.tracker-item:last-child{border-right:none;}
+.tracker-item.active{background:var(--blue-l);color:var(--blue);}
+.tracker-item.done{background:var(--green-l);color:var(--green);}
+.tracker-item:hover:not(.active):not(.done){background:var(--surface2);}
+.tracker-emoji{font-size:16px;display:block;margin-bottom:2px;}
+
+/* ── Section pages ── */
+.section-page{display:none;} .section-page.active{display:block;}
+
+/* ── kubectl output box ── */
+.kubectl-out{background:#0d1117;border:1px solid #30363d;border-radius:var(--radius);padding:.8rem 1rem;font-family:'Courier New',monospace;font-size:12px;line-height:1.7;color:#e6edf3;margin:.6rem 0;overflow-x:auto;}
+.kubectl-out .hl{color:#79c0ff;font-weight:600;} .kubectl-out .green{color:#56d364;} .kubectl-out .yellow{color:#e3b341;}
+
+/* ── Checklist ── */
+.checklist{display:flex;flex-direction:column;gap:8px;margin:.8rem 0;}
+.check-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:background .15s;user-select:none;}
+.check-item:hover{background:var(--surface2);}
+.check-item.checked{background:var(--green-l);border-color:var(--green-b);}
+.check-box{width:20px;height:20px;border:2px solid var(--muted2);border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.check-item.checked .check-box{background:var(--green);border-color:var(--green);}
+.check-label{font-size:13.5px;}
+.check-item.checked .check-label{color:var(--green);text-decoration:line-through;text-decoration-color:var(--green-b);}
+
+/* ── Nav buttons ── */
+.nav-btns{display:flex;justify-content:space-between;margin-top:1.5rem;gap:10px;}
+.nav-btn{padding:10px 22px;border-radius:var(--radius);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;border:none;}
+.nav-btn.prev{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+.nav-btn.prev:hover{background:var(--surface3);}
+.nav-btn.next{background:var(--blue);color:#fff;}
+.nav-btn.next:hover{background:#1462ae;}
+.nav-btn:disabled{opacity:.4;cursor:not-allowed;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <h1>☸ Kubernetes Services</h1>
+    <p>Hands-On Guide · Docker Desktop</p>
+  </div>
+
+  <div class="nav-section">Getting Started</div>
+  <a class="nav-item active" onclick="goSection(0)" href="#">
+    <span class="step-num" id="sn-0">1</span> Overview &amp; Setup
+  </a>
+
+  <div class="nav-section" style="margin-top:.5rem">Service Types</div>
+  <a class="nav-item" onclick="goSection(1)" href="#">
+    <span class="dot" style="background:#1971c2"></span> ClusterIP
+  </a>
+  <a class="nav-item" onclick="goSection(2)" href="#">
+    <span class="dot" style="background:#d95500"></span> NodePort
+  </a>
+  <a class="nav-item" onclick="goSection(3)" href="#">
+    <span class="dot" style="background:#2f9e44"></span> LoadBalancer
+  </a>
+
+  <div class="nav-section" style="margin-top:.5rem">Wrap Up</div>
+  <a class="nav-item" onclick="goSection(4)" href="#">
+    <span class="dot" style="background:#6741d9"></span> Compare All 3
+  </a>
+  <a class="nav-item" onclick="goSection(5)" href="#">
+    <span class="dot" style="background:#e67700"></span> Clean Up
+  </a>
+
+  <div class="sidebar-progress">
+    <div class="progress-label">Progress: <span id="prog-label">0 / 6 sections</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+
+<!-- ── Progress tracker ── -->
+<div class="tracker">
+  <div class="tracker-item active" onclick="goSection(0)"><span class="tracker-emoji">🚀</span>Setup</div>
+  <div class="tracker-item" onclick="goSection(1)"><span class="tracker-emoji">🔵</span>ClusterIP</div>
+  <div class="tracker-item" onclick="goSection(2)"><span class="tracker-emoji">🟠</span>NodePort</div>
+  <div class="tracker-item" onclick="goSection(3)"><span class="tracker-emoji">🟢</span>LoadBalancer</div>
+  <div class="tracker-item" onclick="goSection(4)"><span class="tracker-emoji">📊</span>Compare</div>
+  <div class="tracker-item" onclick="goSection(5)"><span class="tracker-emoji">🧹</span>Clean Up</div>
+</div>
+
+
+<!-- ═══════════════════════════════ SECTION 0 — SETUP ═════════════════════════════ -->
+<div class="section-page active" id="sec-0">
+  <div class="hero">
+    <h2>Kubernetes Services — Hands-On</h2>
+    <p>Follow this step-by-step interactive guide. Each section walks you through one Service type with real commands and visual explanations.</p>
+    <div class="badge-row">
+      <span class="badge">🖥 Docker Desktop · macOS</span>
+      <span class="badge">📋 Copy-paste commands</span>
+      <span class="badge">✅ Step tracker</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#e7f5ff">🧠</div>
+      <div><div class="card-title">Why Services?</div><div class="card-subtitle">The core problem they solve</div></div>
+    </div>
+    <div class="card-body">
+      <p style="margin-bottom:.8rem">Pods are temporary. Every time a pod dies and restarts it gets a <strong>new IP address</strong>. A Service gives you a <strong>stable, permanent endpoint</strong> that always routes to healthy pods — no matter how many there are or what their IPs are.</p>
+
+      <div class="svc-viz">
+        <h4>Without a Service</h4>
+        <div class="flow">
+          <div class="flow-node"><div class="flow-box browser">Your App</div><div class="flow-note">hardcoded IP</div></div>
+          <div class="flow-arrow">—✗→</div>
+          <div class="flow-node"><div class="flow-box pod" style="border-color:var(--red-b);color:var(--red)">Pod<br><small>IP changed!</small></div></div>
+        </div>
+      </div>
+      <div class="svc-viz">
+        <h4>With a Service</h4>
+        <div class="flow">
+          <div class="flow-node"><div class="flow-box browser">Your App</div><div class="flow-note">stable address</div></div>
+          <div class="flow-arrow">──→</div>
+          <div class="flow-node"><div class="flow-box svc clusterip">Service<br><small>stable IP</small></div></div>
+          <div class="flow-arrow">──→</div>
+          <div class="flow-pods">
+            <div class="flow-box pod">Pod 1</div>
+            <div class="flow-box pod">Pod 2</div>
+            <div class="flow-box pod">Pod 3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#ebfbee">⚙️</div>
+      <div><div class="card-title">Setup Steps</div><div class="card-subtitle">Complete these before moving on</div></div>
+    </div>
+    <div class="card-body">
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num-col"><div class="step-circle">1</div></div>
+          <div class="step-body">
+            <div class="step-title">Enable Kubernetes in Docker Desktop</div>
+            <p style="font-size:13px;color:var(--muted);margin-bottom:.5rem">Docker Desktop → ⚙️ Settings → Kubernetes → Enable Kubernetes → Apply &amp; Restart</p>
+            <p style="font-size:13px;color:var(--muted)">Wait ~2 minutes for the green <strong>"Kubernetes is running"</strong> dot at the bottom of Docker Desktop.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num-col"><div class="step-circle">2</div></div>
+          <div class="step-body">
+            <div class="step-title">Verify your cluster context</div>
+            <div class="code-wrap">
+              <pre class="code">kubectl config current-context</pre>
+              <button class="copy-btn" onclick="copyCode(this,'kubectl config current-context')">Copy</button>
+            </div>
+            <div class="kubectl-out">
+              <span class="green">docker-desktop</span>
+            </div>
+            <div class="infobox amber" style="margin-top:.5rem"><strong>⚠️ Wrong context?</strong>Run: <code>kubectl config use-context docker-desktop</code></div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num-col"><div class="step-circle">3</div></div>
+          <div class="step-body">
+            <div class="step-title">Create a clean namespace</div>
+            <div class="code-wrap">
+              <pre class="code">kubectl create namespace svc-demo
+kubectl config set-context --current --namespace=svc-demo</pre>
+              <button class="copy-btn" onclick="copyCode(this,'kubectl create namespace svc-demo\nkubectl config set-context --current --namespace=svc-demo')">Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num-col"><div class="step-circle">4</div></div>
+          <div class="step-body">
+            <div class="step-title">Create working folder &amp; save the ReplicaSet YAML</div>
+            <div class="code-wrap">
+              <pre class="code">mkdir ~/k8s-svc-demo && cd ~/k8s-svc-demo
+
+cat > app-replicaset.yaml &lt;&lt; 'EOF'
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-rs
+  namespace: svc-demo
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+EOF</pre>
+              <button class="copy-btn" onclick="copyCode(this,`mkdir ~/k8s-svc-demo && cd ~/k8s-svc-demo\n\ncat > app-replicaset.yaml << 'EOF'\napiVersion: apps/v1\nkind: ReplicaSet\nmetadata:\n  name: nginx-rs\n  namespace: svc-demo\nspec:\n  replicas: 3\n  selector:\n    matchLabels:\n      app: nginx\n  template:\n    metadata:\n      labels:\n        app: nginx\n    spec:\n      containers:\n      - name: nginx\n        image: nginx:1.21\n        ports:\n        - containerPort: 80\nEOF`)">Copy</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num-col"><div class="step-circle">5</div></div>
+          <div class="step-body">
+            <div class="step-title">Apply the ReplicaSet &amp; wait for pods to be Running</div>
+            <div class="code-wrap">
+              <pre class="code">kubectl apply -f app-replicaset.yaml
+
+# Watch pods come up (Ctrl+C when all 3 show Running)
+kubectl get pods -w</pre>
+              <button class="copy-btn" onclick="copyCode(this,'kubectl apply -f app-replicaset.yaml\nkubectl get pods -w')">Copy</button>
+            </div>
+            <div class="kubectl-out">
+NAME             READY   STATUS              RESTARTS   AGE<br>
+<span class="yellow">nginx-rs-abc12   0/1     ContainerCreating   0          2s</span><br>
+<span class="yellow">nginx-rs-def34   0/1     ContainerCreating   0          2s</span><br>
+<span class="yellow">nginx-rs-ghi56   0/1     ContainerCreating   0          2s</span><br>
+<span class="green">nginx-rs-abc12   1/1     Running             0          8s</span><br>
+<span class="green">nginx-rs-def34   1/1     Running             0          9s</span><br>
+<span class="green">nginx-rs-ghi56   1/1     Running             0          10s</span>
+            </div>
+            <div class="step-note">✅ Once all 3 pods show Running, you're ready for the Service demos!</div>
+          </div>
+        </div>
+
+      </div><!-- /steps -->
+
+      <div class="checklist" id="setup-checks">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box">✓</div>
+          <div class="check-label">Kubernetes is enabled and running in Docker Desktop</div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box">✓</div>
+          <div class="check-label">kubectl config current-context returns docker-desktop</div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box">✓</div>
+          <div class="check-label">Namespace svc-demo created and set as default</div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box">✓</div>
+          <div class="check-label">All 3 nginx pods are in Running state</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-btns">
+    <button class="nav-btn prev" disabled>← Back</button>
+    <button class="nav-btn next" onclick="goSection(1)">Next: ClusterIP →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ SECTION 1 — CLUSTERIP ═════════════════════════════ -->
+<div class="section-page" id="sec-1">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#e7f5ff;font-size:22px">🔵</div>
+      <div><div class="card-title" style="color:#1971c2">ClusterIP</div><div class="card-subtitle">Internal-only communication between pods</div></div>
+    </div>
+    <div class="card-body">
+
+      <div class="infobox blue">
+        <strong>📌 What is ClusterIP?</strong>
+        ClusterIP is the <strong>default</strong> Service type. It creates a virtual IP address reachable <strong>only from inside the cluster</strong>. Perfect for pod-to-pod communication — frontend talking to backend, app talking to database.
+      </div>
+
+      <div class="svc-viz">
+        <h4>Traffic Flow — ClusterIP</h4>
+        <div class="flow">
+          <div class="flow-node"><div class="flow-box browser">Frontend Pod</div><div class="flow-note">inside cluster</div></div>
+          <div class="flow-arrow">──→</div>
+          <div class="flow-node"><div class="flow-box svc clusterip">ClusterIP<br><small>10.96.x.x:80</small></div><div class="flow-note">stable IP</div></div>
+          <div class="flow-arrow">──→</div>
+          <div class="flow-pods">
+            <div class="flow-box pod">Pod 1</div>
+            <div class="flow-box pod">Pod 2</div>
+            <div class="flow-box pod">Pod 3</div>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--red);text-align:center;margin-top:.8rem">🚫  Browser / external traffic cannot reach ClusterIP — this is intentional</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this,'cip-yaml')">YAML</button>
+        <button class="tab" onclick="switchTab(this,'cip-steps')">Step-by-Step</button>
+        <button class="tab" onclick="switchTab(this,'cip-exp')">Experiments</button>
+      </div>
+
+      <div class="tab-panel active" id="cip-yaml">
+        <div class="code-label">clusterip-service.yaml</div>
+        <div class="code-wrap">
+          <pre class="code">apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-clusterip
+  namespace: svc-demo
+spec:
+  type: ClusterIP        <span style="color:#6c7086"># Default — you can omit this line</span>
+  selector:
+    app: nginx            <span style="color:#6c7086"># Matches any pod labelled app=nginx</span>
+  ports:
+  - port: 80             <span style="color:#6c7086"># Port the Service listens on (inside cluster)</span>
+    targetPort: 80       <span style="color:#6c7086"># Port on the pod container to forward to</span></pre>
+          <button class="copy-btn" onclick="copyCode(this,`apiVersion: v1\nkind: Service\nmetadata:\n  name: nginx-clusterip\n  namespace: svc-demo\nspec:\n  type: ClusterIP\n  selector:\n    app: nginx\n  ports:\n  - port: 80\n    targetPort: 80`)">Copy</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="cip-steps">
+        <div class="steps">
+          <div class="step">
+            <div class="step-num-col"><div class="step-circle">1</div></div>
+            <div class="step-body">
+              <div class="step-title">Save the YAML file</div>
+              <div class="code-wrap">
+                <pre class="code">cat > clusterip-service.yaml &lt;&lt; 'EOF'
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-clusterip
+  namespace: svc-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+EOF</pre>
+                <button class="copy-btn" onclick="copyCode(this,`cat > clusterip-service.yaml << 'EOF'\napiVersion: v1\nkind: Service\nmetadata:\n  name: nginx-clusterip\n  namespace: svc-demo\nspec:\n  type: ClusterIP\n  selector:\n    app: nginx\n  ports:\n  - port: 80\n    targetPort: 80\nEOF`)">Copy</button>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num-col"><div class="step-circle">2</div></div>
+            <div class="step-body">
+              <div class="step-title">Apply and inspect</div>
+              <div class="code-wrap">
+                <pre class="code">kubectl apply -f clusterip-service.yaml
+kubectl get svc</pre>
+                <button class="copy-btn" onclick="copyCode(this,'kubectl apply -f clusterip-service.yaml\nkubectl get svc')">Copy</button>
+              </div>
+              <div class="kubectl-out">
+NAME               TYPE        <span class="hl">CLUSTER-IP</span>      EXTERNAL-IP   PORT(S)   AGE<br>
+nginx-clusterip    ClusterIP   <span class="green">10.96.45.123</span>    &lt;none&gt;        80/TCP    5s
+              </div>
+              <div class="step-note">Notice EXTERNAL-IP is &lt;none&gt; — correct! ClusterIP has no external access.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="cip-exp">
+        <div class="infobox blue"><strong>Experiment A — Prove it routes to pods (from inside the cluster)</strong></div>
+        <div class="code-wrap">
+          <pre class="code"><span style="color:#6c7086"># Run a temporary busybox pod inside the cluster and wget the Service</span>
+kubectl run test-pod --image=busybox --restart=Never -it --rm \
+  -- wget -qO- http://nginx-clusterip:80
+
+<span style="color:#6c7086"># You will see the nginx HTML! Run it again — you may hit a different pod.</span></pre>
+          <button class="copy-btn" onclick="copyCode(this,'kubectl run test-pod --image=busybox --restart=Never -it --rm \\\n  -- wget -qO- http://nginx-clusterip:80')">Copy</button>
+        </div>
+
+        <div class="infobox red" style="margin-top:1rem"><strong>Experiment B — Confirm it is NOT reachable from your Mac</strong>
+          Try opening <strong>http://localhost:80</strong> in your browser. It will not connect. ClusterIP is invisible from outside — this is exactly correct behaviour. ✅
+        </div>
+
+        <div class="infobox blue" style="margin-top:.8rem"><strong>Experiment C — Check pod details &amp; labels</strong></div>
+        <div class="code-wrap">
+          <pre class="code"><span style="color:#6c7086"># See all pods with their labels</span>
+kubectl get pods --show-labels
+
+<span style="color:#6c7086"># Describe the Service — see Endpoints section (pod IPs it routes to)</span>
+kubectl describe svc nginx-clusterip</pre>
+          <button class="copy-btn" onclick="copyCode(this,'kubectl get pods --show-labels\nkubectl describe svc nginx-clusterip')">Copy</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="nav-btns">
+    <button class="nav-btn prev" onclick="goSection(0)">← Setup</button>
+    <button class="nav-btn next" onclick="goSection(2)">Next: NodePort →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ SECTION 2 — NODEPORT ═════════════════════════════ -->
+<div class="section-page" id="sec-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#fff4e6;font-size:22px">🟠</div>
+      <div><div class="card-title" style="color:#d95500">NodePort</div><div class="card-subtitle">External access via a port on the node (localhost on Docker Desktop)</div></div>
+    </div>
+    <div class="card-body">
+
+      <div class="infobox orange">
+        <strong>📌 What is NodePort?</strong>
+        NodePort <strong>builds on top of ClusterIP</strong> and additionally opens a specific port (30000–32767) on every node. On Docker Desktop, your node IS localhost — so hitting <code>localhost:30080</code> in a browser reaches your pods.
+      </div>
+
+      <div class="svc-viz">
+        <h4>Traffic Flow — NodePort</h4>
+        <div class="flow">
+          <div class="flow-node"><div class="flow-box browser">🌐 Browser</div><div class="flow-note">localhost:30080</div></div>
+          <div class="flow-arrow">──→</div>
+          <div class="flow-node"><div class="flow-box svc nodeport">NodePort<br><small>:30080</small></div><div class="flow-note">external port</div></div>
+          <div class="flow-arrow">──→</div>
+          <div class="flow-pods">
+            <div class="flow-box pod">Pod 1</div>
+            <div class="flow-box pod">Pod 2</div>
+            <div class="flow-box pod">Pod 3</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="infobox amber" style="margin:.8rem 0">
+        <strong>🔢 Port Terminology</strong><br>
+        <code>port: 80</code> — port the Service listens on inside the cluster<br>
+        <code>targetPort: 80</code> — port on the pod container to forward to<br>
+        <code>nodePort: 30080</code> — the external port opened on the node (must be 30000–32767)
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this,'np-yaml')">YAML</button>
+        <button class="tab" onclick="switchTab(this,'np-steps')">Step-by-Step</button>
+        <button class="tab" onclick="switchTab(this,'np-exp')">Experiments</button>
+      </div>
+
+      <div class="tab-panel active" id="np-yaml">
+        <div class="code-label">nodeport-service.yaml</div>
+        <div class="code-wrap">
+          <pre class="code">apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nodeport
+  namespace: svc-demo
+spec:
+  type: NodePort
+  selector:
+    app: nginx
+  ports:
+  - port: 80             <span style="color:#6c7086"># internal cluster port</span>
+    targetPort: 80       <span style="color:#6c7086"># pod container port</span>
+    nodePort: 30080      <span style="color:#6c7086"># external port on node — must be 30000-32767</span></pre>
+          <button class="copy-btn" onclick="copyCode(this,`apiVersion: v1\nkind: Service\nmetadata:\n  name: nginx-nodeport\n  namespace: svc-demo\nspec:\n  type: NodePort\n  selector:\n    app: nginx\n  ports:\n  - port: 80\n    targetPort: 80\n    nodePort: 30080`)">Copy</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="np-steps">
+        <div class="steps">
+          <div class="step">
+            <div class="step-num-col"><div class="step-circle">1</div></div>
+            <div class="step-body">
+              <div class="step-title">Save the YAML file</div>
+              <div class="code-wrap">
+                <pre class="code">cat > nodeport-service.yaml &lt;&lt; 'EOF'
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nodeport
+  namespace: svc-demo
+spec:
+  type: NodePort
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080
+EOF</pre>
+                <button class="copy-btn" onclick="copyCode(this,`cat > nodeport-service.yaml << 'EOF'\napiVersion: v1\nkind: Service\nmetadata:\n  name: nginx-nodeport\n  namespace: svc-demo\nspec:\n  type: NodePort\n  selector:\n    app: nginx\n  ports:\n  - port: 80\n    targetPort: 80\n    nodePort: 30080\nEOF`)">Copy</button>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num-col"><div class="step-circle">2</div></div>
+            <div class="step-body">
+              <div class="step-title">Apply and inspect</div>
+              <div class="code-wrap">
+                <pre class="code">kubectl apply -f nodeport-service.yaml
+kubectl get svc</pre>
+                <button class="copy-btn" onclick="copyCode(this,'kubectl apply -f nodeport-service.yaml\nkubectl get svc')">Copy</button>
+              </div>
+              <div class="kubectl-out">
+NAME               TYPE        CLUSTER-IP      EXTERNAL-IP   <span class="hl">PORT(S)</span>        AGE<br>
+nginx-clusterip    ClusterIP   10.96.45.123    &lt;none&gt;        80/TCP         2m<br>
+nginx-nodeport     NodePort    10.96.78.200    &lt;none&gt;        <span class="green">80:30080/TCP</span>   5s
+              </div>
+              <div class="step-note">PORT(S) shows 80:30080 — internal port 80 mapped to external port 30080. Open your browser at http://localhost:30080 now!</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="np-exp">
+        <div class="infobox orange"><strong>Experiment A — Access from your browser</strong>
+          Open <strong>http://localhost:30080</strong> in Safari or Chrome. You should see the nginx welcome page! Traffic went: browser → localhost:30080 → NodePort → one of the 3 pods.
+        </div>
+
+        <div class="infobox orange" style="margin-top:.8rem"><strong>Experiment B — See load balancing in action</strong></div>
+        <div class="code-wrap">
+          <pre class="code"><span style="color:#6c7086"># First get your pod names</span>
+kubectl get pods
+
+<span style="color:#6c7086"># Give each pod a unique homepage</span>
+kubectl exec &lt;pod-1-name&gt; -- bash -c "echo '&lt;h1&gt;Pod 1 is serving you!&lt;/h1&gt;' > /usr/share/nginx/html/index.html"
+kubectl exec &lt;pod-2-name&gt; -- bash -c "echo '&lt;h1&gt;Pod 2 is serving you!&lt;/h1&gt;' > /usr/share/nginx/html/index.html"
+kubectl exec &lt;pod-3-name&gt; -- bash -c "echo '&lt;h1&gt;Pod 3 is serving you!&lt;/h1&gt;' > /usr/share/nginx/html/index.html"
+
+<span style="color:#6c7086"># Now refresh http://localhost:30080 several times</span>
+<span style="color:#6c7086"># You'll see Pod 1, Pod 2, Pod 3 in rotation — load balancing!</span></pre>
+          <button class="copy-btn" onclick="copyCode(this,'kubectl get pods')">Copy names cmd</button>
+        </div>
+
+        <div class="infobox orange" style="margin-top:.8rem"><strong>Experiment C — Self-healing through the Service (two terminals)</strong></div>
+        <div class="code-wrap">
+          <pre class="code"><span style="color:#6c7086"># Terminal 1 — continuous curl to show traffic</span>
+while true; do curl -s http://localhost:30080 | grep "&lt;h1&gt;"; sleep 0.5; done
+
+<span style="color:#6c7086"># Terminal 2 — kill a pod and watch Terminal 1</span>
+kubectl delete pod &lt;any-pod-name&gt;
+
+<span style="color:#6c7086"># Terminal 1 keeps running — Service routes around the dead pod.</span>
+<span style="color:#6c7086"># ReplicaSet creates a new pod, Service picks it up automatically.</span></pre>
+          <button class="copy-btn" onclick="copyCode(this,'while true; do curl -s http://localhost:30080 | grep \"<h1>\"; sleep 0.5; done')">Copy curl loop</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="nav-btns">
+    <button class="nav-btn prev" onclick="goSection(1)">← ClusterIP</button>
+    <button class="nav-btn next" onclick="goSection(3)">Next: LoadBalancer →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ SECTION 3 — LOADBALANCER ═════════════════════════════ -->
+<div class="section-page" id="sec-3">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#ebfbee;font-size:22px">🟢</div>
+      <div><div class="card-title" style="color:#2f9e44">LoadBalancer</div><div class="card-subtitle">Production-grade external access with a clean IP/hostname</div></div>
+    </div>
+    <div class="card-body">
+
+      <div class="infobox green">
+        <strong>📌 What is LoadBalancer?</strong>
+        LoadBalancer <strong>builds on top of NodePort</strong> and provisions a real external load balancer. On cloud clusters it gets a dedicated IP (e.g. 34.120.x.x). On Docker Desktop it assigns <strong>localhost</strong> — giving you clean port 80 access with no NodePort number needed.
+      </div>
+
+      <div class="svc-viz">
+        <h4>Traffic Flow — LoadBalancer</h4>
+        <div class="flow">
+          <div class="flow-node"><div class="flow-box browser">🌐 Browser</div><div class="flow-note">localhost:80</div></div>
+          <div class="flow-arrow">──→</div>
+          <div class="flow-node"><div class="flow-box svc lb">LoadBalancer<br><small>External IP</small></div><div class="flow-note">cloud or localhost</div></div>
+          <div class="flow-arrow">──→</div>
+          <div class="flow-pods">
+            <div class="flow-box pod">Pod 1</div>
+            <div class="flow-box pod">Pod 2</div>
+            <div class="flow-box pod">Pod 3</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab(this,'lb-yaml')">YAML</button>
+        <button class="tab" onclick="switchTab(this,'lb-steps')">Step-by-Step</button>
+        <button class="tab" onclick="switchTab(this,'lb-exp')">Experiments</button>
+      </div>
+
+      <div class="tab-panel active" id="lb-yaml">
+        <div class="code-label">loadbalancer-service.yaml</div>
+        <div class="code-wrap">
+          <pre class="code">apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-loadbalancer
+  namespace: svc-demo
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - port: 80             <span style="color:#6c7086"># Clean external port — no nodePort field needed</span>
+    targetPort: 80       <span style="color:#6c7086"># Kubernetes auto-assigns a NodePort behind the scenes</span></pre>
+          <button class="copy-btn" onclick="copyCode(this,`apiVersion: v1\nkind: Service\nmetadata:\n  name: nginx-loadbalancer\n  namespace: svc-demo\nspec:\n  type: LoadBalancer\n  selector:\n    app: nginx\n  ports:\n  - port: 80\n    targetPort: 80`)">Copy</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="lb-steps">
+        <div class="steps">
+          <div class="step">
+            <div class="step-num-col"><div class="step-circle">1</div></div>
+            <div class="step-body">
+              <div class="step-title">Save and apply the YAML</div>
+              <div class="code-wrap">
+                <pre class="code">cat > loadbalancer-service.yaml &lt;&lt; 'EOF'
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-loadbalancer
+  namespace: svc-demo
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+EOF
+
+kubectl apply -f loadbalancer-service.yaml</pre>
+                <button class="copy-btn" onclick="copyCode(this,`cat > loadbalancer-service.yaml << 'EOF'\napiVersion: v1\nkind: Service\nmetadata:\n  name: nginx-loadbalancer\n  namespace: svc-demo\nspec:\n  type: LoadBalancer\n  selector:\n    app: nginx\n  ports:\n  - port: 80\n    targetPort: 80\nEOF\n\nkubectl apply -f loadbalancer-service.yaml`)">Copy</button>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num-col"><div class="step-circle">2</div></div>
+            <div class="step-body">
+              <div class="step-title">Watch for EXTERNAL-IP to appear</div>
+              <div class="code-wrap">
+                <pre class="code"><span style="color:#6c7086"># -w watches for changes — wait a few seconds</span>
+kubectl get svc -w</pre>
+                <button class="copy-btn" onclick="copyCode(this,'kubectl get svc -w')">Copy</button>
+              </div>
+              <div class="kubectl-out">
+NAME                 TYPE           CLUSTER-IP    <span class="hl">EXTERNAL-IP</span>   PORT(S)      AGE<br>
+nginx-clusterip      ClusterIP      10.96.45.x    &lt;none&gt;        80/TCP       5m<br>
+nginx-nodeport       NodePort       10.96.78.x    &lt;none&gt;        80:30080/TCP 3m<br>
+nginx-loadbalancer   LoadBalancer   10.96.90.x    &lt;pending&gt;     80/TCP       2s<br>
+nginx-loadbalancer   LoadBalancer   10.96.90.x    <span class="green">localhost</span>     80/TCP       8s
+              </div>
+              <div class="step-note">EXTERNAL-IP changes from &lt;pending&gt; to localhost — Docker Desktop assigned it! On a cloud cluster this would be a real IP like 34.120.x.x</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num-col"><div class="step-circle">3</div></div>
+            <div class="step-body">
+              <div class="step-title">Open in browser — clean port 80!</div>
+              <p style="font-size:13px;margin-bottom:.5rem">Go to <strong>http://localhost</strong> — no port number needed. This is how production apps feel to end users.</p>
+              <div class="code-wrap">
+                <pre class="code">open http://localhost</pre>
+                <button class="copy-btn" onclick="copyCode(this,'open http://localhost')">Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="lb-exp">
+        <div class="infobox green"><strong>Experiment A — View all three Services together</strong>
+          This single command tells the whole story of the three Service types side by side.
+        </div>
+        <div class="code-wrap">
+          <pre class="code">kubectl get svc</pre>
+          <button class="copy-btn" onclick="copyCode(this,'kubectl get svc')">Copy</button>
+        </div>
+        <div class="kubectl-out">
+NAME                 TYPE           CLUSTER-IP      <span class="hl">EXTERNAL-IP</span>   PORT(S)<br>
+nginx-clusterip      ClusterIP      10.96.45.123    &lt;none&gt;        80/TCP<br>
+nginx-nodeport       NodePort       10.96.78.200    &lt;none&gt;        80:30080/TCP<br>
+nginx-loadbalancer   LoadBalancer   10.96.90.55     <span class="green">localhost</span>     80/TCP
+        </div>
+
+        <div class="infobox green" style="margin-top:.8rem"><strong>Experiment B — Describe the LoadBalancer to see all layers</strong></div>
+        <div class="code-wrap">
+          <pre class="code">kubectl describe svc nginx-loadbalancer
+
+<span style="color:#6c7086"># Notice it shows NodePort assigned internally too!</span>
+<span style="color:#6c7086"># LoadBalancer = ClusterIP + NodePort + external LB, stacked.</span></pre>
+          <button class="copy-btn" onclick="copyCode(this,'kubectl describe svc nginx-loadbalancer')">Copy</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="nav-btns">
+    <button class="nav-btn prev" onclick="goSection(2)">← NodePort</button>
+    <button class="nav-btn next" onclick="goSection(4)">Next: Compare All →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ SECTION 4 — COMPARE ═════════════════════════════ -->
+<div class="section-page" id="sec-4">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#f3f0ff;font-size:22px">📊</div>
+      <div><div class="card-title">All Three Services — Side by Side</div><div class="card-subtitle">The full mental model</div></div>
+    </div>
+    <div class="card-body">
+
+      <table class="compare-tbl">
+        <thead>
+          <tr><th>Feature</th><th>🔵 ClusterIP</th><th>🟠 NodePort</th><th>🟢 LoadBalancer</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Reachable externally?</strong></td><td><span class="pill r">No</span></td><td><span class="pill g">Yes</span></td><td><span class="pill g">Yes</span></td></tr>
+          <tr><td><strong>External port</strong></td><td>None</td><td>30000 – 32767</td><td>Any (80, 443…)</td></tr>
+          <tr><td><strong>On Docker Desktop</strong></td><td>Internal only</td><td>localhost:30080</td><td>localhost:80</td></tr>
+          <tr><td><strong>On cloud cluster</strong></td><td>Internal only</td><td>NodeIP:30080</td><td>Dedicated external IP</td></tr>
+          <tr><td><strong>Builds on top of</strong></td><td>—</td><td>ClusterIP</td><td>NodePort + ClusterIP</td></tr>
+          <tr><td><strong>Use case</strong></td><td>Pod-to-pod</td><td>Dev / testing</td><td>Production</td></tr>
+          <tr><td><strong>Production ready?</strong></td><td><span class="pill b">Yes (internal)</span></td><td><span class="pill o">Not ideal</span></td><td><span class="pill g">Yes</span></td></tr>
+        </tbody>
+      </table>
+
+      <div class="infobox purple" style="margin-top:1rem">
+        <strong>🏗️ Services Stack on Each Other</strong>
+        Every LoadBalancer includes a NodePort, which includes a ClusterIP. Creating a LoadBalancer gives you all three capabilities at once. That's why <code>kubectl describe svc</code> shows a NodePort even on a LoadBalancer.
+        <br><br>
+        <strong>LoadBalancer</strong> ⊃ <strong>NodePort</strong> ⊃ <strong>ClusterIP</strong>
+      </div>
+
+      <div class="svc-viz" style="margin-top:1rem">
+        <h4>Quick Mental Model</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:.5rem;">
+          <div style="text-align:center;padding:1rem;background:var(--blue-l);border-radius:var(--radius);border:1.5px solid var(--blue-b)">
+            <div style="font-size:28px">🔵</div>
+            <div style="font-weight:700;color:var(--blue);margin:.3rem 0">ClusterIP</div>
+            <div style="font-size:12px;color:var(--muted)">Pods talking to each other privately</div>
+          </div>
+          <div style="text-align:center;padding:1rem;background:var(--orange-l);border-radius:var(--radius);border:1.5px solid var(--orange-b)">
+            <div style="font-size:28px">🟠</div>
+            <div style="font-weight:700;color:var(--orange);margin:.3rem 0">NodePort</div>
+            <div style="font-size:12px;color:var(--muted)">Developer access — quick &amp; easy</div>
+          </div>
+          <div style="text-align:center;padding:1rem;background:var(--green-l);border-radius:var(--radius);border:1.5px solid var(--green-b)">
+            <div style="font-size:28px">🟢</div>
+            <div style="font-weight:700;color:var(--green);margin:.3rem 0">LoadBalancer</div>
+            <div style="font-size:12px;color:var(--muted)">Production — clean &amp; scalable</div>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin:1.2rem 0 .6rem;font-size:14px">✅ What You Observed — Learning Checklist</h3>
+      <div class="checklist">
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><div class="check-label">ClusterIP created a stable internal IP, invisible from the browser</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><div class="check-label">NodePort opened port 30080 on localhost — browser access worked immediately</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><div class="check-label">LoadBalancer assigned localhost as EXTERNAL-IP — clean port 80 access</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><div class="check-label">Refreshing :30080 multiple times served different pods — round-robin load balancing</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><div class="check-label">Deleting a pod didn't break traffic — the Service routed around it automatically</div></div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div><div class="check-label">ReplicaSet replaced the dead pod, Service automatically included the new one</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-btns">
+    <button class="nav-btn prev" onclick="goSection(3)">← LoadBalancer</button>
+    <button class="nav-btn next" onclick="goSection(5)">Next: Clean Up →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════ SECTION 5 — CLEAN UP ═════════════════════════════ -->
+<div class="section-page" id="sec-5">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon" style="background:#fff9db;font-size:22px">🧹</div>
+      <div><div class="card-title">Clean Up</div><div class="card-subtitle">Remove all demo resources from your cluster</div></div>
+    </div>
+    <div class="card-body">
+
+      <div class="infobox green">
+        <strong>✅ Great work completing the hands-on!</strong>
+        Deleting the namespace removes everything inside it — the ReplicaSet, all 3 pods, and all 3 Services — in one command.
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num-col"><div class="step-circle">1</div></div>
+          <div class="step-body">
+            <div class="step-title">Delete the entire demo namespace (removes everything)</div>
+            <div class="code-wrap">
+              <pre class="code">kubectl delete namespace svc-demo</pre>
+              <button class="copy-btn" onclick="copyCode(this,'kubectl delete namespace svc-demo')">Copy</button>
+            </div>
+            <div class="kubectl-out"><span class="yellow">namespace "svc-demo" deleted</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num-col"><div class="step-circle">2</div></div>
+          <div class="step-body">
+            <div class="step-title">Reset default namespace back to default</div>
+            <div class="code-wrap">
+              <pre class="code">kubectl config set-context --current --namespace=default</pre>
+              <button class="copy-btn" onclick="copyCode(this,'kubectl config set-context --current --namespace=default')">Copy</button>
+            </div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num-col"><div class="step-circle">3</div></div>
+          <div class="step-body">
+            <div class="step-title">Verify everything is gone</div>
+            <div class="code-wrap">
+              <pre class="code">kubectl get all -n svc-demo
+# Expected: No resources found in svc-demo namespace.</pre>
+              <button class="copy-btn" onclick="copyCode(this,'kubectl get all -n svc-demo')">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="infobox blue" style="margin-top:1rem">
+        <strong>🎯 What's Next? — Deployments</strong>
+        Now that you understand Services, the natural next topic is <strong>Deployments</strong>.<br><br>
+        A Deployment manages a ReplicaSet and adds:<br>
+        &nbsp;&nbsp;• <strong>Rolling updates</strong> — update pods one-by-one, zero downtime<br>
+        &nbsp;&nbsp;• <strong>Rollback</strong> — instantly revert if something breaks<br>
+        &nbsp;&nbsp;• <strong>Update history</strong> — Kubernetes keeps old ReplicaSets for rollback<br><br>
+        <strong>Deployments + Services</strong> together are the core of how real apps run in production Kubernetes.
+      </div>
+
+    </div>
+  </div>
+
+  <div class="nav-btns">
+    <button class="nav-btn prev" onclick="goSection(4)">← Compare</button>
+    <button class="nav-btn next" disabled style="background:var(--green)">🎉 Complete!</button>
+  </div>
+</div>
+
+</main>
+</div><!-- /shell -->
+
+<script>
+let currentSection = 0;
+const TOTAL = 6;
+
+function goSection(n){
+  document.querySelectorAll('.section-page').forEach((p,i)=>p.classList.toggle('active', i===n));
+  document.querySelectorAll('.tracker-item').forEach((t,i)=>{
+    t.classList.remove('active','done');
+    if(i<n) t.classList.add('done');
+    if(i===n) t.classList.add('active');
+  });
+  document.querySelectorAll('.nav-item').forEach((t,i)=>{
+    t.classList.remove('active');
+    if(i===n) t.classList.add('active');
+  });
+  currentSection=n;
+  updateProgress();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateProgress(){
+  const done = document.querySelectorAll('.tracker-item.done').length;
+  const active = document.querySelectorAll('.tracker-item.active').length;
+  const pct = Math.round(((done + active*0.5) / TOTAL)*100);
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-label').textContent = done+' / '+TOTAL+' sections';
+}
+
+function switchTab(btn, panelId){
+  const parent = btn.closest('.card-body') || btn.closest('.tab-panel')?.parentElement || btn.parentElement.parentElement;
+  const container = btn.closest('.card-body');
+  container.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  container.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+function copyCode(btn, text){
+  const content = text || btn.previousElementSibling?.textContent || btn.closest('.code-wrap').querySelector('pre')?.textContent || '';
+  navigator.clipboard.writeText(content.trim()).then(()=>{
+    btn.textContent='Copied!'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); }, 2000);
+  }).catch(()=>{
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = content.trim(); document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent='Copied!'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function toggleCheck(el){
+  el.classList.toggle('checked');
+}
+
+updateProgress();
+</script>
+</body>
+</html>
