@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Kubernetes Microservices — Voting App Deployment</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+<style>
+/* ════════════════════════════════════════════
+   DESIGN SYSTEM — dark technical dashboard
+════════════════════════════════════════════ */
+:root{
+  --bg:#0a0c10;
+  --surface:#111318;
+  --surface2:#161a22;
+  --surface3:#1c2130;
+  --border:#1e2535;
+  --border2:#252d3d;
+  --text:#e2e8f0;
+  --muted:#64748b;
+  --muted2:#475569;
+  --dim:#334155;
+
+  --blue:#3b82f6;    --blue-d:#1d4ed8;  --blue-glow:rgba(59,130,246,.25);
+  --cyan:#06b6d4;    --cyan-d:#0e7490;
+  --green:#22c55e;   --green-d:#15803d; --green-glow:rgba(34,197,94,.2);
+  --yellow:#f59e0b;  --yellow-d:#b45309;
+  --red:#ef4444;     --red-d:#b91c1c;   --red-glow:rgba(239,68,68,.2);
+  --purple:#a855f7;  --purple-d:#7e22ce;
+  --orange:#f97316;  --orange-d:#c2410c;
+  --pink:#ec4899;
+
+  /* per-service colors */
+  --vote:#3b82f6;    --result:#22c55e; --worker:#f59e0b;
+  --redis:#ef4444;   --postgres:#a855f7;
+
+  --radius:6px; --radius-lg:10px; --radius-xl:16px;
+  --font-display:'Syne',sans-serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.7;font-size:15px;overflow-x:hidden;}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ── Shell ── */
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+@media(max-width:900px){.shell{grid-template-columns:1fr;}}
+
+/* ════ SIDEBAR ════ */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;}
+.sb-logo{padding:1.5rem 1.4rem 1.2rem;border-bottom:1px solid var(--border);}
+.sb-logo-badge{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--blue-d),var(--purple-d));padding:6px 12px;border-radius:var(--radius);margin-bottom:.6rem;}
+.sb-logo-badge span{font-family:var(--font-mono);font-size:11px;font-weight:700;color:#fff;letter-spacing:.05em;}
+.sb-logo h1{font-family:var(--font-display);font-size:13px;font-weight:700;color:var(--text);line-height:1.4;}
+.sb-logo p{font-size:11px;color:var(--muted);margin-top:2px;}
+.sb-section{padding:.7rem 1.4rem .2rem;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);}
+.sb-item{display:flex;align-items:center;gap:10px;padding:7px 1.4rem;font-size:12.5px;color:var(--muted);cursor:pointer;transition:all .15s;border-left:2px solid transparent;text-decoration:none;border-right: 0;}
+.sb-item:hover{color:var(--text);background:var(--surface2);}
+.sb-item.active{color:var(--blue);border-left-color:var(--blue);background:rgba(59,130,246,.07);}
+.sb-item .sb-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.sb-item .sb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.sb-progress{padding:1rem 1.4rem;border-top:1px solid var(--border);margin-top:auto;}
+.sb-prog-row{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px;}
+.sb-prog-bar{height:3px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.sb-prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width .4s;}
+
+/* ════ MAIN ════ */
+.main{padding:2.5rem 2.5rem 4rem;max-width:950px;}
+@media(max-width:900px){.main{padding:1.5rem 1rem 3rem;}}
+
+/* ── Section pages ── */
+.page{display:none;} .page.active{display:block;}
+
+/* ── Top tracker ── */
+.tracker{display:flex;gap:2px;margin-bottom:2rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;padding:2px;}
+.tr-item{flex:1;padding:.55rem .3rem;text-align:center;font-size:10.5px;font-weight:600;cursor:pointer;transition:all .18s;color:var(--muted);border-radius:var(--radius);font-family:var(--font-mono);}
+.tr-item:hover{color:var(--text);background:var(--surface2);}
+.tr-item.active{background:var(--blue-d);color:#fff;}
+.tr-item.done{background:rgba(34,197,94,.12);color:var(--green);}
+.tr-emoji{display:block;font-size:14px;margin-bottom:1px;}
+
+/* ── Hero ── */
+.hero{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:2.5rem 2rem;margin-bottom:2rem;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 60% 30%,rgba(59,130,246,.12),transparent),radial-gradient(ellipse 50% 80% at 90% 80%,rgba(168,85,247,.08),transparent);}
+.hero-tag{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--blue);text-transform:uppercase;margin-bottom:.8rem;}
+.hero h2{font-family:var(--font-display);font-size:2rem;font-weight:800;line-height:1.15;margin-bottom:.6rem;background:linear-gradient(135deg,#e2e8f0 0%,#94a3b8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.hero p{color:var(--muted);font-size:.95rem;max-width:560px;position:relative;}
+.hero-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:1.2rem;position:relative;}
+.hbadge{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:99px;font-size:11px;font-weight:600;border:1px solid;}
+.hbadge.blue{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:var(--blue);}
+.hbadge.green{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:var(--green);}
+.hbadge.purple{background:rgba(168,85,247,.1);border-color:rgba(168,85,247,.3);color:var(--purple);}
+.hbadge.orange{background:rgba(249,115,22,.1);border-color:rgba(249,115,22,.3);color:var(--orange);}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1.5rem;overflow:hidden;}
+.card-hdr{padding:1rem 1.4rem;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.card-icon{width:34px;height:34px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.card-ttl{font-family:var(--font-display);font-weight:700;font-size:1rem;color:var(--text);}
+.card-sub{font-size:11.5px;color:var(--muted);margin-top:1px;}
+.card-body{padding:1.4rem;}
+
+/* ── Section heading ── */
+.sec-h{font-family:var(--font-display);font-size:1.35rem;font-weight:800;color:var(--text);margin-bottom:.3rem;}
+.sec-sub{font-size:13.5px;color:var(--muted);margin-bottom:1.5rem;}
+
+/* ── Infoboxes ── */
+.box{border-radius:var(--radius-lg);padding:1rem 1.2rem;margin:.8rem 0;font-size:13.5px;line-height:1.65;border:1px solid;}
+.box strong{display:block;margin-bottom:3px;font-size:13px;}
+.box.blue{background:rgba(59,130,246,.07);border-color:rgba(59,130,246,.25);color:#93c5fd;}
+.box.green{background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.25);color:#86efac;}
+.box.amber{background:rgba(245,158,11,.07);border-color:rgba(245,158,11,.25);color:#fcd34d;}
+.box.red{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.25);color:#fca5a5;}
+.box.purple{background:rgba(168,85,247,.07);border-color:rgba(168,85,247,.25);color:#d8b4fe;}
+.box.cyan{background:rgba(6,182,212,.07);border-color:rgba(6,182,212,.25);color:#67e8f9;}
+
+/* ── Code blocks ── */
+.code-wrap{position:relative;margin:.7rem 0;}
+.code-lbl{font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+.code-lbl::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);}
+pre.code{background:#070910;border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.1rem 1.3rem;font-family:var(--font-mono);font-size:12.5px;line-height:1.8;overflow-x:auto;color:#cdd6f4;white-space:pre;}
+pre.code .ky{color:#89b4fa;} pre.code .vl{color:#a6e3a1;} pre.code .st{color:#f9e2af;}
+pre.code .cm{color:#45475a;font-style:italic;} pre.code .kw{color:#cba6f7;}
+.copy-btn{position:absolute;top:8px;right:8px;background:rgba(255,255,255,.05);border:1px solid var(--border2);border-radius:var(--radius);color:var(--muted);font-size:10.5px;padding:4px 10px;cursor:pointer;font-family:var(--font-mono);font-weight:600;transition:all .15s;}
+.copy-btn:hover{background:rgba(255,255,255,.1);color:var(--text);}
+.copy-btn.ok{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:var(--green);}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:1.4rem;overflow-x:auto;}
+.tab{padding:8px 16px;font-size:12.5px;cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font-mono);font-weight:600;white-space:nowrap;transition:all .15s;}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab:hover:not(.active){color:var(--text);}
+.tab-panel{display:none;} .tab-panel.active{display:block;}
+
+/* ── Steps ── */
+.steps{display:flex;flex-direction:column;gap:1px;}
+.step{display:grid;grid-template-columns:52px 1fr;border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:.8rem;transition:border-color .2s;}
+.step:hover{border-color:var(--border2);}
+.step-idx{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:1rem 0;background:var(--surface2);border-right:1px solid var(--border);}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--blue-d);color:#fff;font-weight:700;font-size:11.5px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);}
+.step-body{padding:1rem 1.3rem;background:var(--surface);}
+.step-title{font-weight:600;font-size:13.5px;color:var(--text);margin-bottom:.5rem;display:flex;align-items:center;gap:8px;}
+.step-note{font-size:12px;color:var(--yellow);background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:var(--radius);padding:6px 10px;margin-top:.5rem;}
+
+/* ── Kubectl output ── */
+.kout{background:#070910;border:1px solid var(--border);border-radius:var(--radius-lg);padding:.8rem 1rem;font-family:var(--font-mono);font-size:12px;line-height:1.75;color:#e2e8f0;margin:.5rem 0;overflow-x:auto;}
+.kout .hl{color:#89b4fa;font-weight:600;} .kout .g{color:#a6e3a1;} .kout .y{color:#f9e2af;} .kout .r{color:#f38ba8;} .kout .dim{color:#45475a;}
+
+/* ── Checklist ── */
+.checklist{display:flex;flex-direction:column;gap:6px;margin:.8rem 0;}
+.chk{display:flex;align-items:flex-start;gap:10px;padding:9px 13px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:all .15s;user-select:none;}
+.chk:hover{background:var(--surface2);}
+.chk.done{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.25);}
+.chk-box{width:18px;height:18px;border:2px solid var(--border2);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .2s;margin-top:1px;}
+.chk.done .chk-box{background:var(--green-d);border-color:var(--green);color:#fff;}
+.chk-txt{font-size:13px;color:var(--muted);}
+.chk.done .chk-txt{color:var(--green);text-decoration:line-through;text-decoration-color:rgba(34,197,94,.4);}
+
+/* ── Nav buttons ── */
+.nav-row{display:flex;justify-content:space-between;margin-top:2rem;gap:10px;}
+.nbtn{padding:9px 22px;border-radius:var(--radius-lg);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--font-mono);border:1px solid;}
+.nbtn.prev{background:transparent;color:var(--muted);border-color:var(--border2);}
+.nbtn.prev:hover{color:var(--text);border-color:var(--dim);}
+.nbtn.next{background:var(--blue-d);color:#fff;border-color:var(--blue);}
+.nbtn.next:hover{background:var(--blue);box-shadow:0 0 20px var(--blue-glow);}
+.nbtn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* ════════════════════════
+   ARCHITECTURE DIAGRAMS
+════════════════════════ */
+.arch-diagram{background:#070910;border:1px solid var(--border);border-radius:var(--radius-xl);padding:2rem;margin:1rem 0;position:relative;overflow:hidden;}
+.arch-diagram::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 0%,rgba(59,130,246,.05),transparent);}
+
+/* Microservices grid */
+.ms-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin:1rem 0;}
+@media(max-width:700px){.ms-grid{grid-template-columns:1fr 1fr;}}
+.ms-card{border:1px solid;border-radius:var(--radius-lg);padding:1rem;transition:transform .2s,box-shadow .2s;cursor:default;}
+.ms-card:hover{transform:translateY(-2px);}
+.ms-card.vote{border-color:rgba(59,130,246,.35);background:rgba(59,130,246,.06);}
+.ms-card.result{border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.06);}
+.ms-card.worker{border-color:rgba(245,158,11,.35);background:rgba(245,158,11,.06);}
+.ms-card.redis{border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.06);}
+.ms-card.postgres{border-color:rgba(168,85,247,.35);background:rgba(168,85,247,.06);}
+.ms-icon{font-size:26px;margin-bottom:.5rem;}
+.ms-name{font-family:var(--font-display);font-weight:700;font-size:13.5px;margin-bottom:3px;}
+.ms-card.vote .ms-name{color:var(--vote);}
+.ms-card.result .ms-name{color:var(--result);}
+.ms-card.worker .ms-name{color:var(--worker);}
+.ms-card.redis .ms-name{color:var(--redis);}
+.ms-card.postgres .ms-name{color:var(--postgres);}
+.ms-desc{font-size:11.5px;color:var(--muted);line-height:1.5;}
+.ms-tech{font-family:var(--font-mono);font-size:10px;color:var(--dim);margin-top:.4rem;}
+
+/* ── Flow diagram (SVG-style CSS) ── */
+.flow-diagram{display:flex;align-items:center;justify-content:center;gap:0;padding:1rem;flex-wrap:wrap;row-gap:1rem;}
+.fd-node{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:80px;}
+.fd-box{padding:8px 14px;border-radius:var(--radius);font-family:var(--font-mono);font-size:11px;font-weight:700;text-align:center;border:1.5px solid;white-space:nowrap;}
+.fd-box.voter{background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.4);color:#93c5fd;}
+.fd-box.vote{background:rgba(59,130,246,.15);border-color:var(--blue);color:#fff;}
+.fd-box.redis{background:rgba(239,68,68,.15);border-color:var(--red);color:#fca5a5;}
+.fd-box.worker{background:rgba(245,158,11,.15);border-color:var(--yellow);color:#fde68a;}
+.fd-box.postgres{background:rgba(168,85,247,.15);border-color:var(--purple);color:#d8b4fe;}
+.fd-box.result{background:rgba(34,197,94,.15);border-color:var(--green);color:#86efac;}
+.fd-box.viewer{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.4);color:#86efac;}
+.fd-label{font-size:10px;color:var(--dim);font-family:var(--font-mono);}
+.fd-arrow{display:flex;align-items:center;padding:0 4px;color:var(--dim);font-size:20px;flex-shrink:0;}
+.fd-arrow.down{transform:rotate(90deg);}
+
+/* ── Architecture full diagram ── */
+.arch-full{position:relative;padding:1.5rem;overflow-x:auto;}
+
+/* ── Ports table ── */
+.port-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin:.8rem 0;}
+.port-tbl th{background:var(--surface2);color:var(--muted);padding:8px 12px;text-align:left;font-family:var(--font-mono);font-size:11px;border-bottom:1px solid var(--border);}
+.port-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);}
+.port-tbl tr:last-child td{border-bottom:none;}
+.port-tbl tr:hover td{background:var(--surface2);}
+.dot-svc{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+
+/* ── K8s object table ── */
+.k8s-tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin:.8rem 0;}
+.k8s-tbl th{background:var(--surface2);color:var(--muted);padding:8px 12px;text-align:left;font-family:var(--font-mono);font-size:11px;border-bottom:1px solid var(--border);}
+.k8s-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);}
+.k8s-tbl tr:last-child td{border-bottom:none;}
+.k8s-tbl tr:hover td{background:var(--surface2);}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10.5px;font-weight:600;font-family:var(--font-mono);}
+.pill.dep{background:rgba(59,130,246,.15);color:#93c5fd;}
+.pill.svc{background:rgba(34,197,94,.15);color:#86efac;}
+.pill.pod{background:rgba(245,158,11,.15);color:#fde68a;}
+
+/* ── Progress pulse ── */
+@keyframes pulse-ring{0%{transform:scale(.95);box-shadow:0 0 0 0 rgba(59,130,246,.5);}70%{transform:scale(1);box-shadow:0 0 0 8px rgba(59,130,246,0);}100%{transform:scale(.95);}}
+.pulse{animation:pulse-ring 2s infinite;}
+
+/* ── Animated entrance ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.page.active .card,.page.active .hero,.page.active .arch-diagram{animation:fadeUp .35s ease both;}
+.page.active .card:nth-child(2){animation-delay:.06s;}
+.page.active .card:nth-child(3){animation-delay:.12s;}
+.page.active .card:nth-child(4){animation-delay:.18s;}
+
+/* ── Comparison compare ── */
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:.8rem 0;}
+@media(max-width:600px){.compare-grid{grid-template-columns:1fr;}}
+.cmp-card{border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.2rem;}
+.cmp-title{font-family:var(--font-display);font-weight:700;font-size:14px;margin-bottom:.8rem;}
+.cmp-list{list-style:none;font-size:12.5px;color:var(--muted);}
+.cmp-list li{padding:4px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:7px;}
+.cmp-list li:last-child{border-bottom:none;}
+
+/* deployment progress visual */
+.deploy-flow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin:1.5rem 0;position:relative;}
+.deploy-flow::before{content:'';position:absolute;top:22px;left:10%;right:10%;height:2px;background:linear-gradient(90deg,var(--blue),var(--cyan),var(--green));z-index:0;}
+.df-item{display:flex;flex-direction:column;align-items:center;gap:6px;z-index:1;}
+.df-circle{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid;transition:all .3s;}
+.df-circle.pending{background:var(--surface2);border-color:var(--border2);}
+.df-circle.active{background:rgba(59,130,246,.2);border-color:var(--blue);box-shadow:0 0 16px var(--blue-glow);}
+.df-circle.done{background:rgba(34,197,94,.15);border-color:var(--green);}
+.df-lbl{font-size:10px;font-family:var(--font-mono);color:var(--muted);text-align:center;line-height:1.3;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ════ SIDEBAR ════ -->
+<nav class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-badge"><span>☸ K8S GUIDE</span></div>
+    <h1>Microservices &amp; Voting App</h1>
+    <p>Kubernetes deployment walkthrough</p>
+  </div>
+
+  <div class="sb-section">Concepts</div>
+  <a class="sb-item active" onclick="go(0)" href="#"><span class="sb-icon">🏗️</span>Microservices Intro</a>
+  <a class="sb-item" onclick="go(1)" href="#"><span class="sb-icon">🗳️</span>Voting App Architecture</a>
+  <a class="sb-item" onclick="go(2)" href="#"><span class="sb-icon">🔄</span>How Data Flows</a>
+
+  <div class="sb-section" style="margin-top:.4rem">Deployment</div>
+  <a class="sb-item" onclick="go(3)" href="#"><span class="sb-dot" style="background:var(--blue)"></span>Setup &amp; Namespace</a>
+  <a class="sb-item" onclick="go(4)" href="#"><span class="sb-dot" style="background:var(--red)"></span>Redis</a>
+  <a class="sb-item" onclick="go(5)" href="#"><span class="sb-dot" style="background:var(--purple)"></span>PostgreSQL</a>
+  <a class="sb-item" onclick="go(6)" href="#"><span class="sb-dot" style="background:var(--vote)"></span>Voting App</a>
+  <a class="sb-item" onclick="go(7)" href="#"><span class="sb-dot" style="background:var(--worker)"></span>Worker</a>
+  <a class="sb-item" onclick="go(8)" href="#"><span class="sb-dot" style="background:var(--result)"></span>Result App</a>
+  <a class="sb-item" onclick="go(9)" href="#"><span class="sb-icon">🧪</span>Verify &amp; Test</a>
+  <a class="sb-item" onclick="go(10)" href="#"><span class="sb-icon">🧹</span>Clean Up</a>
+
+  <div class="sb-progress">
+    <div class="sb-prog-row"><span id="prog-lbl">0 / 11 sections</span><span id="prog-pct">0%</span></div>
+    <div class="sb-prog-bar"><div class="sb-prog-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+</nav>
+
+<!-- ════ MAIN CONTENT ════ -->
+<main class="main">
+
+<!-- tracker -->
+<div class="tracker" id="tracker">
+  <div class="tr-item active" onclick="go(0)"><span class="tr-emoji">🏗️</span>Intro</div>
+  <div class="tr-item" onclick="go(1)"><span class="tr-emoji">🗳️</span>App</div>
+  <div class="tr-item" onclick="go(2)"><span class="tr-emoji">🔄</span>Flow</div>
+  <div class="tr-item" onclick="go(3)"><span class="tr-emoji">⚙️</span>Setup</div>
+  <div class="tr-item" onclick="go(4)"><span class="tr-emoji">🔴</span>Redis</div>
+  <div class="tr-item" onclick="go(5)"><span class="tr-emoji">🟣</span>Postgres</div>
+  <div class="tr-item" onclick="go(6)"><span class="tr-emoji">🔵</span>Vote</div>
+  <div class="tr-item" onclick="go(7)"><span class="tr-emoji">🟡</span>Worker</div>
+  <div class="tr-item" onclick="go(8)"><span class="tr-emoji">🟢</span>Result</div>
+  <div class="tr-item" onclick="go(9)"><span class="tr-emoji">🧪</span>Test</div>
+  <div class="tr-item" onclick="go(10)"><span class="tr-emoji">🧹</span>Done</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 0 — Microservices Introduction
+════════════════════════════════════════════════ -->
+<div class="page active" id="p0">
+  <div class="hero">
+    <div class="hero-tag">Module 4 · Kubernetes Hands-On</div>
+    <h2>Microservices Architecture</h2>
+    <p>Before deploying, let's understand what microservices are, why they exist, and how the Docker Voting App demonstrates this architecture perfectly.</p>
+    <div class="hero-badges">
+      <span class="hbadge blue">5 microservices</span>
+      <span class="hbadge green">Docker official sample</span>
+      <span class="hbadge purple">Kubernetes deployment</span>
+      <span class="hbadge orange">Docker Desktop · macOS</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:rgba(59,130,246,.15)">🏗️</div>
+      <div><div class="card-ttl">What is Microservices Architecture?</div><div class="card-sub">The shift from monolith to independent services</div></div>
+    </div>
+    <div class="card-body">
+      <p style="margin-bottom:1rem;color:var(--muted);font-size:14px">In the old world, an application was one giant codebase — a <strong style="color:var(--text)">monolith</strong>. Deploy one thing, it runs everything. Simple to start, painful to scale.</p>
+
+      <div class="compare-grid">
+        <div class="cmp-card" style="border-color:rgba(239,68,68,.25)">
+          <div class="cmp-title" style="color:var(--red)">🧱 Monolith</div>
+          <ul class="cmp-list">
+            <li><span style="color:var(--red)">✗</span> One huge codebase</li>
+            <li><span style="color:var(--red)">✗</span> Scale entire app for 1 bottleneck</li>
+            <li><span style="color:var(--red)">✗</span> One bug can crash everything</li>
+            <li><span style="color:var(--red)">✗</span> All teams deploy together</li>
+            <li><span style="color:var(--red)">✗</span> Locked into one tech stack</li>
+          </ul>
+        </div>
+        <div class="cmp-card" style="border-color:rgba(34,197,94,.25)">
+          <div class="cmp-title" style="color:var(--green)">🧩 Microservices</div>
+          <ul class="cmp-list">
+            <li><span style="color:var(--green)">✓</span> Small, focused services</li>
+            <li><span style="color:var(--green)">✓</span> Scale only what's needed</li>
+            <li><span style="color:var(--green)">✓</span> Failures are isolated</li>
+            <li><span style="color:var(--green)">✓</span> Teams deploy independently</li>
+            <li><span style="color:var(--green)">✓</span> Each service picks its own tech</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="box blue" style="margin-top:1rem">
+        <strong>💡 The Core Principle</strong>
+        Each microservice does <em>one thing well</em>, runs in its own process, communicates over a network (HTTP or message queues), and can be deployed, scaled, and updated independently. Think of it like a kitchen: the chef, sommelier, and host each have a specialized role — not one person doing everything.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:rgba(168,85,247,.15)">🎯</div>
+      <div><div class="card-ttl">Why Kubernetes is Perfect for Microservices</div><div class="card-sub">The platform built for this problem</div></div>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
+        <div class="box cyan" style="margin:0"><strong>🔁 Self-healing</strong>If a service crashes, Kubernetes restarts it — other services keep running.</div>
+        <div class="box blue" style="margin:0"><strong>📈 Independent scaling</strong>Getting more votes? Scale only the voting service — not the result app.</div>
+        <div class="box green" style="margin:0"><strong>🌐 Service discovery</strong>Services find each other by name — no hardcoded IPs needed.</div>
+        <div class="box purple" style="margin:0"><strong>🚀 Rolling updates</strong>Update one service with zero downtime while others stay live.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="nbtn prev" disabled>← Back</button>
+    <button class="nbtn next" onclick="go(1)">Voting App Architecture →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 1 — Voting App Architecture
+════════════════════════════════════════════════ -->
+<div class="page" id="p1">
+  <div class="hero">
+    <div class="hero-tag">Docker Sample App</div>
+    <h2>The Voting Application</h2>
+    <p>Docker's official sample microservices app — 5 services, 3 different languages, 2 databases. A perfect real-world demo of microservices on Kubernetes.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:rgba(59,130,246,.15)">🗳️</div>
+      <div><div class="card-ttl">The 5 Services</div><div class="card-sub">Each service has one clear responsibility</div></div>
+    </div>
+    <div class="card-body">
+      <div class="ms-grid">
+        <div class="ms-card vote">
+          <div class="ms-icon">🗳️</div>
+          <div class="ms-name">Voting App</div>
+          <div class="ms-desc">Web UI where users vote for Cats or Dogs. Sends votes to Redis.</div>
+          <div class="ms-tech">Python · Flask · Port 80</div>
+        </div>
+        <div class="ms-card redis">
+          <div class="ms-icon">⚡</div>
+          <div class="ms-name">Redis</div>
+          <div class="ms-desc">In-memory queue that holds incoming votes before they're processed.</div>
+          <div class="ms-tech">Redis 5.0-alpine · Port 6379</div>
+        </div>
+        <div class="ms-card worker">
+          <div class="ms-icon">⚙️</div>
+          <div class="ms-name">Worker</div>
+          <div class="ms-desc">Background service — reads votes from Redis and writes to PostgreSQL.</div>
+          <div class="ms-tech">.NET Core · No external port</div>
+        </div>
+        <div class="ms-card postgres">
+          <div class="ms-icon">🐘</div>
+          <div class="ms-name">PostgreSQL</div>
+          <div class="ms-desc">Persistent database that stores the final vote tallies permanently.</div>
+          <div class="ms-tech">Postgres 9.4 · Port 5432</div>
+        </div>
+        <div class="ms-card result">
+          <div class="ms-icon">📊</div>
+          <div class="ms-name">Result App</div>
+          <div class="ms-desc">Real-time dashboard showing live vote results from PostgreSQL.</div>
+          <div class="ms-tech">Node.js · Express · Port 80</div>
+        </div>
+      </div>
+
+      <div class="box amber" style="margin-top:1rem">
+        <strong>📦 Docker Image Source</strong>
+        All images are from Docker Hub. The original repo is <code style="font-family:var(--font-mono);color:var(--yellow)">dockersamples/example-voting-app</code>. We use the pre-built images directly — no need to build anything yourself.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:rgba(34,197,94,.15)">📋</div>
+      <div><div class="card-ttl">Kubernetes Objects We'll Create</div><div class="card-sub">10 YAML files — Deployments + Services for each component</div></div>
+    </div>
+    <div class="card-body">
+      <table class="k8s-tbl">
+        <thead><tr><th>Service</th><th>Deployment</th><th>K8s Service Type</th><th>External Port</th></tr></thead>
+        <tbody>
+          <tr><td><span class="dot-svc" style="background:var(--vote)"></span>Voting App</td><td><span class="pill dep">voting-app-deploy</span></td><td><span class="pill svc">NodePort</span></td><td><code style="font-family:var(--font-mono);color:var(--blue)">30004</code></td></tr>
+          <tr><td><span class="dot-svc" style="background:var(--red)"></span>Redis</td><td><span class="pill dep">redis-deploy</span></td><td><span class="pill svc">ClusterIP</span></td><td><span style="color:var(--dim)">internal only</span></td></tr>
+          <tr><td><span class="dot-svc" style="background:var(--worker)"></span>Worker</td><td><span class="pill dep">worker-deploy</span></td><td><span style="color:var(--dim)">none</span></td><td><span style="color:var(--dim)">no port</span></td></tr>
+          <tr><td><span class="dot-svc" style="background:var(--postgres)"></span>PostgreSQL</td><td><span class="pill dep">postgres-deploy</span></td><td><span class="pill svc">ClusterIP</span></td><td><span style="color:var(--dim)">internal only</span></td></tr>
+          <tr><td><span class="dot-svc" style="background:var(--result)"></span>Result App</td><td><span class="pill dep">result-app-deploy</span></td><td><span class="pill svc">NodePort</span></td><td><code style="font-family:var(--font-mono);color:var(--green)">30005</code></td></tr>
+        </tbody>
+      </table>
+      <div class="box blue">
+        <strong>💡 Why two NodePorts?</strong>
+        Only the Voting App (port 30004) and Result App (port 30005) need to be accessed from a browser — those get NodePort. Redis and PostgreSQL only need to be reached by other pods inside the cluster — those get ClusterIP. The Worker doesn't expose any port at all.
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(0)">← Intro</button>
+    <button class="nbtn next" onclick="go(2)">Data Flow →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 2 — How Data Flows
+════════════════════════════════════════════════ -->
+<div class="page" id="p2">
+  <div class="hero">
+    <div class="hero-tag">Architecture Deep Dive</div>
+    <h2>How Data Flows Through the App</h2>
+    <p>Follow a single vote from browser click to results dashboard — through 5 services, 2 databases, and Kubernetes networking.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:rgba(59,130,246,.15)">🔄</div>
+      <div><div class="card-ttl">End-to-End Data Flow Diagram</div><div class="card-sub">Follow the vote from click to chart</div></div>
+    </div>
+    <div class="card-body">
+      <div class="arch-diagram">
+        <!-- Full architecture flow -->
+        <div style="display:flex;flex-direction:column;gap:1.4rem;align-items:center;">
+
+          <!-- Row 1: User + Voting App -->
+          <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;justify-content:center;gap:.5rem;">
+            <div class="fd-node">
+              <div class="fd-box voter">👤 User Browser</div>
+              <div class="fd-label">localhost:30004</div>
+            </div>
+            <div class="fd-arrow">──→</div>
+            <div class="fd-node">
+              <div class="fd-box vote" style="padding:10px 20px">🗳️ Voting App</div>
+              <div class="fd-label">NodePort :30004</div>
+            </div>
+            <div class="fd-arrow">──→</div>
+            <div class="fd-node">
+              <div class="fd-box redis">⚡ Redis</div>
+              <div class="fd-label">ClusterIP :6379</div>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div style="width:60%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);"></div>
+
+          <!-- Row 2: Worker in middle -->
+          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:center;">
+            <div class="fd-node">
+              <div class="fd-box redis">⚡ Redis</div>
+              <div class="fd-label">reads votes</div>
+            </div>
+            <div class="fd-arrow">──→</div>
+            <div class="fd-node" style="position:relative;">
+              <div class="fd-box worker pulse">⚙️ Worker</div>
+              <div class="fd-label">background service</div>
+            </div>
+            <div class="fd-arrow">──→</div>
+            <div class="fd-node">
+              <div class="fd-box postgres">🐘 PostgreSQL</div>
+              <div class="fd-label">writes tallies</div>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div style="width:60%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);"></div>
+
+          <!-- Row 3: Result App + Viewer -->
+          <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:center;">
+            <div class="fd-node">
+              <div class="fd-box postgres">🐘 PostgreSQL</div>
+              <div class="fd-label">reads tallies</div>
+            </div>
+            <div class="fd-arrow">──→</div>
+            <div class="fd-node">
+              <div class="fd-box result" style="padding:10px 20px">📊 Result App</div>
+              <div class="fd-label">NodePort :30005</div>
+            </div>
+            <div class="fd-arrow">──→</div>
+            <div class="fd-node">
+              <div class="fd-box viewer">👤 User Browser</div>
+              <div class="fd-label">localhost:30005</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:rgba(245,158,11,.15)">🔢</div>
+      <div><div class="card-ttl">Step-by-Step Vote Journey</div><div class="card-sub">What happens when you click "Cats"?</div></div>
+    </div>
+    <div class="card-body">
+      <div class="steps">
+        <div class="step">
+          <div class="step-idx"><div class="step-num">1</div></div>
+          <div class="step-body">
+            <div class="step-title">👤 User visits <code style="font-family:var(--font-mono);color:var(--blue)">localhost:30004</code> and clicks "Cats"</div>
+            <p style="font-size:13px;color:var(--muted)">Browser sends an HTTP POST request to the Voting App (Python/Flask). Kubernetes NodePort routes external port 30004 into the cluster to the voting-app pod.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-idx"><div class="step-num">2</div></div>
+          <div class="step-body">
+            <div class="step-title">🗳️ Voting App pushes vote to Redis</div>
+            <p style="font-size:13px;color:var(--muted)">The Flask app connects to <code style="font-family:var(--font-mono);color:var(--red)">redis:6379</code> (ClusterIP Service name — DNS-based service discovery!) and pushes the vote as a list item. Redis acts as a fast message queue.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-idx"><div class="step-num">3</div></div>
+          <div class="step-body">
+            <div class="step-title">⚙️ Worker reads from Redis, writes to PostgreSQL</div>
+            <p style="font-size:13px;color:var(--muted)">The .NET Worker continuously polls Redis for new votes. For each vote it finds, it UPSERTs (insert or update) a row in PostgreSQL at <code style="font-family:var(--font-mono);color:var(--purple)">db:5432</code>. This is the only way data moves from Redis to Postgres.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-idx"><div class="step-num">4</div></div>
+          <div class="step-body">
+            <div class="step-title">📊 Result App reads PostgreSQL and displays live results</div>
+            <p style="font-size:13px;color:var(--muted)">The Node.js Result App connects to <code style="font-family:var(--font-mono);color:var(--purple)">db:5432</code> and queries vote counts every second. It serves a real-time dashboard at port 30005 using WebSockets for live updates without page refresh.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="box cyan" style="margin-top:.5rem">
+        <strong>🔑 Kubernetes Service Discovery in Action</strong>
+        Notice the Voting App connects to <code>"redis"</code> — not an IP address. The Worker connects to <code>"db"</code> — not an IP. Kubernetes DNS automatically resolves these Service names to the correct ClusterIP. This is how microservices find each other without hardcoding IPs.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-icon" style="background:rgba(34,197,94,.15)">🗺️</div>
+      <div><div class="card-ttl">Complete Kubernetes Architecture</div><div class="card-sub">All pods, deployments, and services mapped out</div></div>
+    </div>
+    <div class="card-body">
+      <div class="arch-diagram">
+        <div style="font-size:10px;font-family:var(--font-mono);color:var(--dim);margin-bottom:1rem;text-align:center;letter-spacing:.08em;">KUBERNETES CLUSTER — namespace: vote</div>
+
+        <!-- External access row -->
+        <div style="display:flex;justify-content:space-around;margin-bottom:1rem;">
+          <div style="text-align:center;">
+            <div style="font-size:10px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px">EXTERNAL</div>
+            <div style="padding:6px 16px;background:rgba(59,130,246,.1);border:1px dashed rgba(59,130,246,.4);border-radius:var(--radius);font-family:var(--font-mono);font-size:11px;color:#93c5fd">🌐 localhost:30004</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:10px;color:var(--muted);font-family:var(--font-mono);margin-bottom:4px">EXTERNAL</div>
+            <div style="padding:6px 16px;background:rgba(34,197,94,.1);border:1px dashed rgba(34,197,94,.4);border-radius:var(--radius);font-family:var(--font-mono);font-size:11px;color:#86efac">🌐 localhost:30005</div>
+          </div>
+        </div>
+
+        <!-- Cluster box -->
+        <div style="border:1px solid var(--border2);border-radius:var(--radius-xl);padding:1.2rem;background:rgba(255,255,255,.02);">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+
+            <!-- Voting App + Service -->
+            <div style="border:1px solid rgba(59,130,246,.3);border-radius:var(--radius-lg);padding:.8rem;background:rgba(59,130,246,.05)">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--blue);margin-bottom:.5rem">VOTING-APP-DEPLOY · 1 replica</div>
+              <div style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);border-radius:var(--radius);padding:6px 10px;font-size:11px;font-family:var(--font-mono);color:#93c5fd;margin-bottom:.4rem">🗳️ voting-app pod</div>
+              <div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:var(--radius);padding:4px 8px;font-size:10px;font-family:var(--font-mono);color:var(--blue)">⚡ svc: voting-service (NodePort:30004)</div>
+            </div>
+
+            <!-- Result App + Service -->
+            <div style="border:1px solid rgba(34,197,94,.3);border-radius:var(--radius-lg);padding:.8rem;background:rgba(34,197,94,.05)">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--green);margin-bottom:.5rem">RESULT-APP-DEPLOY · 1 replica</div>
+              <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:var(--radius);padding:6px 10px;font-size:11px;font-family:var(--font-mono);color:#86efac;margin-bottom:.4rem">📊 result-app pod</div>
+              <div style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:var(--radius);padding:4px 8px;font-size:10px;font-family:var(--font-mono);color:var(--green)">⚡ svc: result-service (NodePort:30005)</div>
+            </div>
+          </div>
+
+          <!-- Worker in the middle -->
+          <div style="border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-lg);padding:.8rem;background:rgba(245,158,11,.05);margin-bottom:1rem;text-align:center;">
+            <div style="font-size:10px;font-family:var(--font-mono);color:var(--yellow);margin-bottom:.4rem">WORKER-DEPLOY · 1 replica · no service</div>
+            <div style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius);padding:6px 10px;font-size:11px;font-family:var(--font-mono);color:#fde68a;display:inline-block">⚙️ worker pod — reads Redis, writes Postgres</div>
+          </div>
+
+          <!-- Redis + Postgres row -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div style="border:1px solid rgba(239,68,68,.3);border-radius:var(--radius-lg);padding:.8rem;background:rgba(239,68,68,.05)">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--red);margin-bottom:.5rem">REDIS-DEPLOY · 1 replica</div>
+              <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius);padding:6px 10px;font-size:11px;font-family:var(--font-mono);color:#fca5a5;margin-bottom:.4rem">⚡ redis pod</div>
+              <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius);padding:4px 8px;font-size:10px;font-family:var(--font-mono);color:var(--red)">⚡ svc: redis (ClusterIP:6379)</div>
+            </div>
+            <div style="border:1px solid rgba(168,85,247,.3);border-radius:var(--radius-lg);padding:.8rem;background:rgba(168,85,247,.05)">
+              <div style="font-size:10px;font-family:var(--font-mono);color:var(--purple);margin-bottom:.5rem">POSTGRES-DEPLOY · 1 replica</div>
+              <div style="background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);border-radius:var(--radius);padding:6px 10px;font-size:11px;font-family:var(--font-mono);color:#d8b4fe;margin-bottom:.4rem">🐘 postgres pod</div>
+              <div style="background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:var(--radius);padding:4px 8px;font-size:10px;font-family:var(--font-mono);color:var(--purple)">⚡ svc: db (ClusterIP:5432)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(1)">← App Overview</button>
+    <button class="nbtn next" onclick="go(3)">Start Deployment →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 3 — Setup & Namespace
+════════════════════════════════════════════════ -->
+<div class="page" id="p3">
+  <div class="hero">
+    <div class="hero-tag">Deployment · Step 1</div>
+    <h2>Setup &amp; Namespace</h2>
+    <p>Prepare your cluster, create an isolated namespace, and set up the project folder. All 10 YAML files will live here.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(59,130,246,.15)">⚙️</div><div><div class="card-ttl">Pre-flight checks</div></div></div>
+    <div class="card-body">
+      <div class="steps">
+        <div class="step"><div class="step-idx"><div class="step-num">1</div></div><div class="step-body">
+          <div class="step-title">Verify Kubernetes is running</div>
+          <div class="code-wrap"><pre class="code">kubectl cluster-info
+kubectl config current-context
+<span class="cm"># Expected: docker-desktop</span></pre><button class="copy-btn" onclick="cp(this,'kubectl cluster-info\nkubectl config current-context')">Copy</button></div>
+        </div></div>
+        <div class="step"><div class="step-idx"><div class="step-num">2</div></div><div class="step-body">
+          <div class="step-title">Create the voting namespace &amp; project folder</div>
+          <div class="code-wrap"><pre class="code">kubectl create namespace vote
+kubectl config set-context --current --namespace=vote
+
+mkdir ~/k8s-voting-app && cd ~/k8s-voting-app</pre><button class="copy-btn" onclick="cp(this,'kubectl create namespace vote\nkubectl config set-context --current --namespace=vote\nmkdir ~/k8s-voting-app && cd ~/k8s-voting-app')">Copy</button></div>
+        </div></div>
+      </div>
+
+      <!-- Deploy order visual -->
+      <div class="box blue" style="margin-top:.5rem">
+        <strong>📋 Deployment Order — Important!</strong>
+        We deploy in dependency order. Redis and PostgreSQL first (they have no dependencies), then the Worker (depends on both), then the Voting App (depends on Redis) and Result App (depends on PostgreSQL).
+      </div>
+
+      <div class="deploy-flow" style="margin-top:1.5rem;">
+        <div class="df-item"><div class="df-circle active">⚡</div><div class="df-lbl">Redis<br>first</div></div>
+        <div class="df-item"><div class="df-circle pending">🐘</div><div class="df-lbl">Postgres<br>second</div></div>
+        <div class="df-item"><div class="df-circle pending">⚙️</div><div class="df-lbl">Worker<br>third</div></div>
+        <div class="df-item"><div class="df-circle pending">🗳️</div><div class="df-lbl">Voting App<br>fourth</div></div>
+        <div class="df-item"><div class="df-circle pending">📊</div><div class="df-lbl">Result App<br>last</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(2)">← Data Flow</button>
+    <button class="nbtn next" onclick="go(4)">Deploy Redis →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 4 — Redis
+════════════════════════════════════════════════ -->
+<div class="page" id="p4">
+  <div class="hero" style="border-color:rgba(239,68,68,.2)">
+    <div class="hero-tag" style="color:var(--red)">Deployment · Step 2</div>
+    <h2>Deploy Redis</h2>
+    <p>Redis is the in-memory message queue. The Voting App writes votes here, the Worker reads them. It needs a ClusterIP Service so other pods can reach it by the name <code style="font-family:var(--font-mono)">"redis"</code>.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(239,68,68,.15)">⚡</div><div><div class="card-ttl">Redis Deployment + Service</div><div class="card-sub">2 YAML files</div></div></div>
+    <div class="card-body">
+      <div class="tabs">
+        <button class="tab active" onclick="st(this,'r-dep')">Deployment YAML</button>
+        <button class="tab" onclick="st(this,'r-svc')">Service YAML</button>
+        <button class="tab" onclick="st(this,'r-apply')">Apply &amp; Verify</button>
+      </div>
+
+      <div class="tab-panel active" id="r-dep">
+        <div class="code-lbl">redis-deploy.yaml</div>
+        <div class="code-wrap"><pre class="code"><span class="ky">apiVersion</span>: <span class="vl">apps/v1</span>
+<span class="ky">kind</span>: <span class="vl">Deployment</span>
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: <span class="st">redis-deploy</span>
+  <span class="ky">namespace</span>: <span class="st">vote</span>
+  <span class="ky">labels</span>:
+    <span class="ky">app</span>: <span class="st">redis</span>
+<span class="ky">spec</span>:
+  <span class="ky">replicas</span>: <span class="vl">1</span>
+  <span class="ky">selector</span>:
+    <span class="ky">matchLabels</span>:
+      <span class="ky">app</span>: <span class="st">redis</span>
+  <span class="ky">template</span>:
+    <span class="ky">metadata</span>:
+      <span class="ky">labels</span>:
+        <span class="ky">app</span>: <span class="st">redis</span>
+    <span class="ky">spec</span>:
+      <span class="ky">containers</span>:
+      - <span class="ky">name</span>: <span class="st">redis</span>
+        <span class="ky">image</span>: <span class="st">redis:5.0-alpine</span>
+        <span class="ky">ports</span>:
+        - <span class="ky">containerPort</span>: <span class="vl">6379</span></pre>
+        <button class="copy-btn" onclick="cp(this,`apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: redis-deploy\n  namespace: vote\n  labels:\n    app: redis\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: redis\n  template:\n    metadata:\n      labels:\n        app: redis\n    spec:\n      containers:\n      - name: redis\n        image: redis:5.0-alpine\n        ports:\n        - containerPort: 6379`)">Copy</button></div>
+      </div>
+
+      <div class="tab-panel" id="r-svc">
+        <div class="code-lbl">redis-service.yaml</div>
+        <div class="code-wrap"><pre class="code"><span class="ky">apiVersion</span>: <span class="vl">v1</span>
+<span class="ky">kind</span>: <span class="vl">Service</span>
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: <span class="st">redis</span>          <span class="cm"># Voting App connects to "redis" — this is that name</span>
+  <span class="ky">namespace</span>: <span class="st">vote</span>
+  <span class="ky">labels</span>:
+    <span class="ky">app</span>: <span class="st">redis</span>
+<span class="ky">spec</span>:
+  <span class="ky">type</span>: <span class="vl">ClusterIP</span>       <span class="cm"># Internal only — pods only, no browser access</span>
+  <span class="ky">selector</span>:
+    <span class="ky">app</span>: <span class="st">redis</span>
+  <span class="ky">ports</span>:
+  - <span class="ky">port</span>: <span class="vl">6379</span>
+    <span class="ky">targetPort</span>: <span class="vl">6379</span></pre>
+        <button class="copy-btn" onclick="cp(this,`apiVersion: v1\nkind: Service\nmetadata:\n  name: redis\n  namespace: vote\n  labels:\n    app: redis\nspec:\n  type: ClusterIP\n  selector:\n    app: redis\n  ports:\n  - port: 6379\n    targetPort: 6379`)">Copy</button></div>
+      </div>
+
+      <div class="tab-panel" id="r-apply">
+        <div class="code-wrap"><pre class="code"><span class="cm"># Save both files then apply</span>
+kubectl apply -f redis-deploy.yaml
+kubectl apply -f redis-service.yaml
+
+<span class="cm"># Verify</span>
+kubectl get deploy redis-deploy
+kubectl get svc redis
+kubectl get pods -l app=redis</pre><button class="copy-btn" onclick="cp(this,'kubectl apply -f redis-deploy.yaml\nkubectl apply -f redis-service.yaml\nkubectl get deploy redis-deploy\nkubectl get svc redis\nkubectl get pods -l app=redis')">Copy</button></div>
+        <div class="kout">NAME           READY   UP-TO-DATE   AVAILABLE<br>
+<span class="g">redis-deploy   1/1     1            1</span><br><br>
+NAME    TYPE        CLUSTER-IP      PORT(S)<br>
+<span class="hl">redis</span>   ClusterIP   <span class="g">10.96.x.x</span>       6379/TCP</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(3)">← Setup</button>
+    <button class="nbtn next" onclick="go(5)">Deploy PostgreSQL →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 5 — PostgreSQL
+════════════════════════════════════════════════ -->
+<div class="page" id="p5">
+  <div class="hero" style="border-color:rgba(168,85,247,.2)">
+    <div class="hero-tag" style="color:var(--purple)">Deployment · Step 3</div>
+    <h2>Deploy PostgreSQL</h2>
+    <p>PostgreSQL is the persistent database. The Worker writes vote tallies here. The Result App reads from here. Its Service name must be <code style="font-family:var(--font-mono)">"db"</code> — that's what both apps expect.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(168,85,247,.15)">🐘</div><div><div class="card-ttl">PostgreSQL Deployment + Service</div></div></div>
+    <div class="card-body">
+      <div class="tabs">
+        <button class="tab active" onclick="st(this,'pg-dep')">Deployment YAML</button>
+        <button class="tab" onclick="st(this,'pg-svc')">Service YAML</button>
+        <button class="tab" onclick="st(this,'pg-apply')">Apply &amp; Verify</button>
+      </div>
+
+      <div class="tab-panel active" id="pg-dep">
+        <div class="code-lbl">postgres-deploy.yaml</div>
+        <div class="code-wrap"><pre class="code"><span class="ky">apiVersion</span>: <span class="vl">apps/v1</span>
+<span class="ky">kind</span>: <span class="vl">Deployment</span>
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: <span class="st">postgres-deploy</span>
+  <span class="ky">namespace</span>: <span class="st">vote</span>
+  <span class="ky">labels</span>:
+    <span class="ky">app</span>: <span class="st">db</span>
+<span class="ky">spec</span>:
+  <span class="ky">replicas</span>: <span class="vl">1</span>
+  <span class="ky">selector</span>:
+    <span class="ky">matchLabels</span>:
+      <span class="ky">app</span>: <span class="st">db</span>
+  <span class="ky">template</span>:
+    <span class="ky">metadata</span>:
+      <span class="ky">labels</span>:
+        <span class="ky">app</span>: <span class="st">db</span>
+    <span class="ky">spec</span>:
+      <span class="ky">containers</span>:
+      - <span class="ky">name</span>: <span class="st">postgres</span>
+        <span class="ky">image</span>: <span class="st">postgres:9.4</span>
+        <span class="ky">env</span>:
+        - <span class="ky">name</span>: <span class="st">POSTGRES_USER</span>
+          <span class="ky">value</span>: <span class="st">"postgres"</span>
+        - <span class="ky">name</span>: <span class="st">POSTGRES_PASSWORD</span>
+          <span class="ky">value</span>: <span class="st">"postgres"</span>
+        <span class="ky">ports</span>:
+        - <span class="ky">containerPort</span>: <span class="vl">5432</span></pre>
+        <button class="copy-btn" onclick="cp(this,`apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: postgres-deploy\n  namespace: vote\n  labels:\n    app: db\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: db\n  template:\n    metadata:\n      labels:\n        app: db\n    spec:\n      containers:\n      - name: postgres\n        image: postgres:9.4\n        env:\n        - name: POSTGRES_USER\n          value: \"postgres\"\n        - name: POSTGRES_PASSWORD\n          value: \"postgres\"\n        ports:\n        - containerPort: 5432`)">Copy</button></div>
+      </div>
+
+      <div class="tab-panel" id="pg-svc">
+        <div class="code-lbl">postgres-service.yaml</div>
+        <div class="code-wrap"><pre class="code"><span class="ky">apiVersion</span>: <span class="vl">v1</span>
+<span class="ky">kind</span>: <span class="vl">Service</span>
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: <span class="st">db</span>              <span class="cm"># Worker and Result App connect to "db"</span>
+  <span class="ky">namespace</span>: <span class="st">vote</span>
+  <span class="ky">labels</span>:
+    <span class="ky">app</span>: <span class="st">db</span>
+<span class="ky">spec</span>:
+  <span class="ky">type</span>: <span class="vl">ClusterIP</span>
+  <span class="ky">selector</span>:
+    <span class="ky">app</span>: <span class="st">db</span>
+  <span class="ky">ports</span>:
+  - <span class="ky">port</span>: <span class="vl">5432</span>
+    <span class="ky">targetPort</span>: <span class="vl">5432</span></pre>
+        <button class="copy-btn" onclick="cp(this,`apiVersion: v1\nkind: Service\nmetadata:\n  name: db\n  namespace: vote\n  labels:\n    app: db\nspec:\n  type: ClusterIP\n  selector:\n    app: db\n  ports:\n  - port: 5432\n    targetPort: 5432`)">Copy</button></div>
+      </div>
+
+      <div class="tab-panel" id="pg-apply">
+        <div class="code-wrap"><pre class="code">kubectl apply -f postgres-deploy.yaml
+kubectl apply -f postgres-service.yaml
+
+kubectl get deploy postgres-deploy
+kubectl get svc db
+kubectl get pods -l app=db</pre><button class="copy-btn" onclick="cp(this,'kubectl apply -f postgres-deploy.yaml\nkubectl apply -f postgres-service.yaml\nkubectl get deploy postgres-deploy\nkubectl get svc db')">Copy</button></div>
+        <div class="kout">NAME              READY   UP-TO-DATE   AVAILABLE<br>
+<span class="g">postgres-deploy   1/1     1            1</span><br><br>
+NAME   TYPE        CLUSTER-IP    PORT(S)<br>
+<span class="hl">db</span>     ClusterIP   <span class="g">10.96.x.x</span>     5432/TCP</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(4)">← Redis</button>
+    <button class="nbtn next" onclick="go(6)">Deploy Voting App →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 6 — Voting App
+════════════════════════════════════════════════ -->
+<div class="page" id="p6">
+  <div class="hero" style="border-color:rgba(59,130,246,.2)">
+    <div class="hero-tag" style="color:var(--blue)">Deployment · Step 4</div>
+    <h2>Deploy the Voting App</h2>
+    <p>The Python Flask frontend where users cast their vote. Needs a NodePort Service so browsers can reach it at <code style="font-family:var(--font-mono)">localhost:30004</code>.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(59,130,246,.15)">🗳️</div><div><div class="card-ttl">Voting App Deployment + Service</div></div></div>
+    <div class="card-body">
+      <div class="tabs">
+        <button class="tab active" onclick="st(this,'va-dep')">Deployment YAML</button>
+        <button class="tab" onclick="st(this,'va-svc')">Service YAML</button>
+        <button class="tab" onclick="st(this,'va-apply')">Apply &amp; Verify</button>
+      </div>
+
+      <div class="tab-panel active" id="va-dep">
+        <div class="code-lbl">voting-app-deploy.yaml</div>
+        <div class="code-wrap"><pre class="code"><span class="ky">apiVersion</span>: <span class="vl">apps/v1</span>
+<span class="ky">kind</span>: <span class="vl">Deployment</span>
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: <span class="st">voting-app-deploy</span>
+  <span class="ky">namespace</span>: <span class="st">vote</span>
+  <span class="ky">labels</span>:
+    <span class="ky">app</span>: <span class="st">voting-app</span>
+<span class="ky">spec</span>:
+  <span class="ky">replicas</span>: <span class="vl">1</span>
+  <span class="ky">selector</span>:
+    <span class="ky">matchLabels</span>:
+      <span class="ky">app</span>: <span class="st">voting-app</span>
+  <span class="ky">template</span>:
+    <span class="ky">metadata</span>:
+      <span class="ky">labels</span>:
+        <span class="ky">app</span>: <span class="st">voting-app</span>
+    <span class="ky">spec</span>:
+      <span class="ky">containers</span>:
+      - <span class="ky">name</span>: <span class="st">voting-app</span>
+        <span class="ky">image</span>: <span class="st">dockersamples/examplevotingapp_vote:before</span>
+        <span class="ky">ports</span>:
+        - <span class="ky">containerPort</span>: <span class="vl">80</span></pre>
+        <button class="copy-btn" onclick="cp(this,`apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: voting-app-deploy\n  namespace: vote\n  labels:\n    app: voting-app\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: voting-app\n  template:\n    metadata:\n      labels:\n        app: voting-app\n    spec:\n      containers:\n      - name: voting-app\n        image: dockersamples/examplevotingapp_vote:before\n        ports:\n        - containerPort: 80`)">Copy</button></div>
+      </div>
+
+      <div class="tab-panel" id="va-svc">
+        <div class="code-lbl">voting-app-service.yaml</div>
+        <div class="code-wrap"><pre class="code"><span class="ky">apiVersion</span>: <span class="vl">v1</span>
+<span class="ky">kind</span>: <span class="vl">Service</span>
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: <span class="st">voting-service</span>
+  <span class="ky">namespace</span>: <span class="st">vote</span>
+  <span class="ky">labels</span>:
+    <span class="ky">app</span>: <span class="st">voting-app</span>
+<span class="ky">spec</span>:
+  <span class="ky">type</span>: <span class="vl">NodePort</span>        <span class="cm"># Accessible from browser</span>
+  <span class="ky">selector</span>:
+    <span class="ky">app</span>: <span class="st">voting-app</span>
+  <span class="ky">ports</span>:
+  - <span class="ky">port</span>: <span class="vl">80</span>
+    <span class="ky">targetPort</span>: <span class="vl">80</span>
+    <span class="ky">nodePort</span>: <span class="vl">30004</span>      <span class="cm"># Access at localhost:30004</span></pre>
+        <button class="copy-btn" onclick="cp(this,`apiVersion: v1\nkind: Service\nmetadata:\n  name: voting-service\n  namespace: vote\n  labels:\n    app: voting-app\nspec:\n  type: NodePort\n  selector:\n    app: voting-app\n  ports:\n  - port: 80\n    targetPort: 80\n    nodePort: 30004`)">Copy</button></div>
+      </div>
+
+      <div class="tab-panel" id="va-apply">
+        <div class="code-wrap"><pre class="code">kubectl apply -f voting-app-deploy.yaml
+kubectl apply -f voting-app-service.yaml
+
+kubectl get deploy voting-app-deploy
+kubectl get svc voting-service</pre><button class="copy-btn" onclick="cp(this,'kubectl apply -f voting-app-deploy.yaml\nkubectl apply -f voting-app-service.yaml')">Copy</button></div>
+        <div class="kout">NAME                 TYPE       EXTERNAL-IP   <span class="hl">PORT(S)</span><br>
+<span class="g">voting-service</span>      NodePort   &lt;none&gt;        <span class="g">80:30004/TCP</span><br><br>
+<span class="dim"># Try it now: open http://localhost:30004</span></div>
+        <div class="box blue" style="margin-top:.5rem"><strong>🎉 Open http://localhost:30004 in your browser!</strong>You should see the Cats vs Dogs voting interface. Votes won't save yet — Redis is running but the Worker isn't deployed yet.</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(5)">← PostgreSQL</button>
+    <button class="nbtn next" onclick="go(7)">Deploy Worker →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 7 — Worker
+════════════════════════════════════════════════ -->
+<div class="page" id="p7">
+  <div class="hero" style="border-color:rgba(245,158,11,.2)">
+    <div class="hero-tag" style="color:var(--yellow)">Deployment · Step 5</div>
+    <h2>Deploy the Worker</h2>
+    <p>The .NET background service that bridges Redis and PostgreSQL. It needs no Service — it reaches out to other services, nothing reaches in to it. This is the glue of the whole pipeline.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(245,158,11,.15)">⚙️</div><div><div class="card-ttl">Worker Deployment — No Service Needed</div></div></div>
+    <div class="card-body">
+      <div class="box amber" style="margin-bottom:1rem">
+        <strong>⚙️ Why no Service for Worker?</strong>
+        The Worker is a background consumer — it never receives inbound connections. It only <em>makes outbound connections</em> to Redis and PostgreSQL. Therefore it needs no Kubernetes Service at all. It just runs silently, processing votes.
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="st(this,'w-dep')">Deployment YAML</button>
+        <button class="tab" onclick="st(this,'w-apply')">Apply &amp; Verify</button>
+      </div>
+
+      <div class="tab-panel active" id="w-dep">
+        <div class="code-lbl">worker-deploy.yaml</div>
+        <div class="code-wrap"><pre class="code"><span class="ky">apiVersion</span>: <span class="vl">apps/v1</span>
+<span class="ky">kind</span>: <span class="vl">Deployment</span>
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: <span class="st">worker-deploy</span>
+  <span class="ky">namespace</span>: <span class="st">vote</span>
+  <span class="ky">labels</span>:
+    <span class="ky">app</span>: <span class="st">worker</span>
+<span class="ky">spec</span>:
+  <span class="ky">replicas</span>: <span class="vl">1</span>
+  <span class="ky">selector</span>:
+    <span class="ky">matchLabels</span>:
+      <span class="ky">app</span>: <span class="st">worker</span>
+  <span class="ky">template</span>:
+    <span class="ky">metadata</span>:
+      <span class="ky">labels</span>:
+        <span class="ky">app</span>: <span class="st">worker</span>
+    <span class="ky">spec</span>:
+      <span class="ky">containers</span>:
+      - <span class="ky">name</span>: <span class="st">worker</span>
+        <span class="ky">image</span>: <span class="st">dockersamples/examplevotingapp_worker</span>
+        <span class="cm"># No ports — worker receives no inbound connections</span></pre>
+        <button class="copy-btn" onclick="cp(this,`apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: worker-deploy\n  namespace: vote\n  labels:\n    app: worker\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: worker\n  template:\n    metadata:\n      labels:\n        app: worker\n    spec:\n      containers:\n      - name: worker\n        image: dockersamples/examplevotingapp_worker`)">Copy</button></div>
+      </div>
+
+      <div class="tab-panel" id="w-apply">
+        <div class="code-wrap"><pre class="code">kubectl apply -f worker-deploy.yaml
+
+kubectl get deploy worker-deploy
+kubectl get pods -l app=worker
+
+<span class="cm"># Watch the worker logs to see it processing votes</span>
+kubectl logs -l app=worker -f</pre><button class="copy-btn" onclick="cp(this,'kubectl apply -f worker-deploy.yaml\nkubectl get deploy worker-deploy\nkubectl logs -l app=worker -f')">Copy</button></div>
+        <div class="kout">NAME             READY   UP-TO-DATE   AVAILABLE<br>
+<span class="g">worker-deploy    1/1     1            1</span><br><br>
+<span class="dim"># Logs will show:</span><br>
+<span class="g">Connecting to db</span><br>
+<span class="g">Found redis at 10.96.x.x</span><br>
+<span class="g">Connecting to db</span></div>
+        <div class="box green" style="margin-top:.5rem"><strong>✅ Now go cast a vote at localhost:30004!</strong>After clicking Cats or Dogs, check the Worker logs — you should see it processing your vote in real time.</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(6)">← Voting App</button>
+    <button class="nbtn next" onclick="go(8)">Deploy Result App →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 8 — Result App
+════════════════════════════════════════════════ -->
+<div class="page" id="p8">
+  <div class="hero" style="border-color:rgba(34,197,94,.2)">
+    <div class="hero-tag" style="color:var(--green)">Deployment · Step 6</div>
+    <h2>Deploy the Result App</h2>
+    <p>The Node.js dashboard showing live vote results pulled from PostgreSQL. Accessible at <code style="font-family:var(--font-mono)">localhost:30005</code> — keep both browser tabs open to vote and watch results update live.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(34,197,94,.15)">📊</div><div><div class="card-ttl">Result App Deployment + Service</div></div></div>
+    <div class="card-body">
+      <div class="tabs">
+        <button class="tab active" onclick="st(this,'ra-dep')">Deployment YAML</button>
+        <button class="tab" onclick="st(this,'ra-svc')">Service YAML</button>
+        <button class="tab" onclick="st(this,'ra-apply')">Apply &amp; Verify</button>
+      </div>
+
+      <div class="tab-panel active" id="ra-dep">
+        <div class="code-lbl">result-app-deploy.yaml</div>
+        <div class="code-wrap"><pre class="code"><span class="ky">apiVersion</span>: <span class="vl">apps/v1</span>
+<span class="ky">kind</span>: <span class="vl">Deployment</span>
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: <span class="st">result-app-deploy</span>
+  <span class="ky">namespace</span>: <span class="st">vote</span>
+  <span class="ky">labels</span>:
+    <span class="ky">app</span>: <span class="st">result-app</span>
+<span class="ky">spec</span>:
+  <span class="ky">replicas</span>: <span class="vl">1</span>
+  <span class="ky">selector</span>:
+    <span class="ky">matchLabels</span>:
+      <span class="ky">app</span>: <span class="st">result-app</span>
+  <span class="ky">template</span>:
+    <span class="ky">metadata</span>:
+      <span class="ky">labels</span>:
+        <span class="ky">app</span>: <span class="st">result-app</span>
+    <span class="ky">spec</span>:
+      <span class="ky">containers</span>:
+      - <span class="ky">name</span>: <span class="st">result-app</span>
+        <span class="ky">image</span>: <span class="st">dockersamples/examplevotingapp_result:before</span>
+        <span class="ky">ports</span>:
+        - <span class="ky">containerPort</span>: <span class="vl">80</span></pre>
+        <button class="copy-btn" onclick="cp(this,`apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: result-app-deploy\n  namespace: vote\n  labels:\n    app: result-app\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: result-app\n  template:\n    metadata:\n      labels:\n        app: result-app\n    spec:\n      containers:\n      - name: result-app\n        image: dockersamples/examplevotingapp_result:before\n        ports:\n        - containerPort: 80`)">Copy</button></div>
+      </div>
+
+      <div class="tab-panel" id="ra-svc">
+        <div class="code-lbl">result-app-service.yaml</div>
+        <div class="code-wrap"><pre class="code"><span class="ky">apiVersion</span>: <span class="vl">v1</span>
+<span class="ky">kind</span>: <span class="vl">Service</span>
+<span class="ky">metadata</span>:
+  <span class="ky">name</span>: <span class="st">result-service</span>
+  <span class="ky">namespace</span>: <span class="st">vote</span>
+  <span class="ky">labels</span>:
+    <span class="ky">app</span>: <span class="st">result-app</span>
+<span class="ky">spec</span>:
+  <span class="ky">type</span>: <span class="vl">NodePort</span>
+  <span class="ky">selector</span>:
+    <span class="ky">app</span>: <span class="st">result-app</span>
+  <span class="ky">ports</span>:
+  - <span class="ky">port</span>: <span class="vl">80</span>
+    <span class="ky">targetPort</span>: <span class="vl">80</span>
+    <span class="ky">nodePort</span>: <span class="vl">30005</span>      <span class="cm"># Results dashboard at localhost:30005</span></pre>
+        <button class="copy-btn" onclick="cp(this,`apiVersion: v1\nkind: Service\nmetadata:\n  name: result-service\n  namespace: vote\n  labels:\n    app: result-app\nspec:\n  type: NodePort\n  selector:\n    app: result-app\n  ports:\n  - port: 80\n    targetPort: 80\n    nodePort: 30005`)">Copy</button></div>
+      </div>
+
+      <div class="tab-panel" id="ra-apply">
+        <div class="code-wrap"><pre class="code">kubectl apply -f result-app-deploy.yaml
+kubectl apply -f result-app-service.yaml
+
+kubectl get deploy result-app-deploy
+kubectl get svc result-service</pre><button class="copy-btn" onclick="cp(this,'kubectl apply -f result-app-deploy.yaml\nkubectl apply -f result-app-service.yaml')">Copy</button></div>
+        <div class="kout">NAME             TYPE       EXTERNAL-IP   <span class="hl">PORT(S)</span><br>
+<span class="g">result-service</span>  NodePort   &lt;none&gt;        <span class="g">80:30005/TCP</span></div>
+        <div class="box green" style="margin-top:.5rem"><strong>🎉 Open http://localhost:30005!</strong>You should see the live results dashboard. Now open localhost:30004 in another tab, vote several times, and watch the chart update in real time!</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(7)">← Worker</button>
+    <button class="nbtn next" onclick="go(9)">Verify Everything →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 9 — Verify & Test
+════════════════════════════════════════════════ -->
+<div class="page" id="p9">
+  <div class="hero">
+    <div class="hero-tag">Verification</div>
+    <h2>Verify &amp; Test the Full Stack</h2>
+    <p>All 5 services deployed. Let's confirm everything is running, test the full vote-to-result flow, and explore the cluster state.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(34,197,94,.15)">🔍</div><div><div class="card-ttl">Full Cluster Inspection</div></div></div>
+    <div class="card-body">
+      <div class="code-wrap"><pre class="code"><span class="cm"># See ALL deployments</span>
+kubectl get deployments -n vote
+
+<span class="cm"># See ALL services</span>
+kubectl get services -n vote
+
+<span class="cm"># See ALL pods (all 5 should be Running)</span>
+kubectl get pods -n vote
+
+<span class="cm"># See everything at once</span>
+kubectl get all -n vote</pre><button class="copy-btn" onclick="cp(this,'kubectl get deployments -n vote\nkubectl get services -n vote\nkubectl get pods -n vote\nkubectl get all -n vote')">Copy</button></div>
+
+      <div class="kout">NAME                    READY   UP-TO-DATE   AVAILABLE<br>
+<span class="g">redis-deploy            1/1     1            1</span><br>
+<span class="g">postgres-deploy         1/1     1            1</span><br>
+<span class="g">worker-deploy           1/1     1            1</span><br>
+<span class="g">voting-app-deploy       1/1     1            1</span><br>
+<span class="g">result-app-deploy       1/1     1            1</span><br><br>
+NAME              TYPE        EXTERNAL-IP   PORT(S)<br>
+<span class="hl">redis</span>             ClusterIP   10.96.x.x     6379/TCP<br>
+<span class="hl">db</span>                ClusterIP   10.96.x.x     5432/TCP<br>
+<span class="hl">voting-service</span>    NodePort    &lt;none&gt;        <span class="g">80:30004/TCP</span><br>
+<span class="hl">result-service</span>    NodePort    &lt;none&gt;        <span class="g">80:30005/TCP</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(59,130,246,.15)">🧪</div><div><div class="card-ttl">End-to-End Test Checklist</div></div></div>
+    <div class="card-body">
+      <div class="checklist">
+        <div class="chk" onclick="tc(this)"><div class="chk-box">✓</div><div class="chk-txt">Open <strong>http://localhost:30004</strong> — you see the Cats vs Dogs voting UI</div></div>
+        <div class="chk" onclick="tc(this)"><div class="chk-box">✓</div><div class="chk-txt">Open <strong>http://localhost:30005</strong> in a second tab — you see the results dashboard</div></div>
+        <div class="chk" onclick="tc(this)"><div class="chk-box">✓</div><div class="chk-txt">Click "Cats" on the voting page — the result page updates within 1-2 seconds</div></div>
+        <div class="chk" onclick="tc(this)"><div class="chk-box">✓</div><div class="chk-txt">Click "Dogs" several times — results chart reflects the new totals</div></div>
+        <div class="chk" onclick="tc(this)"><div class="chk-box">✓</div><div class="chk-txt">Run <code style="font-family:var(--font-mono);font-size:12px">kubectl get pods -n vote</code> — all 5 pods show READY 1/1</div></div>
+        <div class="chk" onclick="tc(this)"><div class="chk-box">✓</div><div class="chk-txt">Check worker logs: <code style="font-family:var(--font-mono);font-size:12px">kubectl logs -l app=worker -n vote</code> — shows vote processing</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(168,85,247,.15)">🔬</div><div><div class="card-ttl">Bonus: Explore Individual Services</div></div></div>
+    <div class="card-body">
+      <div class="code-wrap"><pre class="code"><span class="cm"># Describe any service — see its Endpoints (pod IPs)</span>
+kubectl describe svc voting-service -n vote
+
+<span class="cm"># Check logs for each service</span>
+kubectl logs -l app=voting-app -n vote
+kubectl logs -l app=result-app -n vote
+kubectl logs -l app=worker -n vote
+
+<span class="cm"># Scale the voting app to 3 replicas — the Service load-balances!</span>
+kubectl scale deploy voting-app-deploy --replicas=3 -n vote
+
+<span class="cm"># Watch pods come up</span>
+kubectl get pods -n vote -w
+
+<span class="cm"># Check Kubernetes Service Discovery — exec into voting app and ping redis by name</span>
+kubectl exec -it deploy/voting-app-deploy -n vote -- sh
+  # inside pod:
+  nslookup redis
+  nslookup db</pre><button class="copy-btn" onclick="cp(this,'kubectl describe svc voting-service -n vote\nkubectl logs -l app=voting-app -n vote\nkubectl scale deploy voting-app-deploy --replicas=3 -n vote\nkubectl get pods -n vote -w')">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(8)">← Result App</button>
+    <button class="nbtn next" onclick="go(10)">Clean Up →</button>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     PAGE 10 — Clean Up
+════════════════════════════════════════════════ -->
+<div class="page" id="p10">
+  <div class="hero">
+    <div class="hero-tag">Wrap Up</div>
+    <h2>Clean Up &amp; What You Learned</h2>
+    <p>Remove all resources in one command and review the complete picture of what you just built.</p>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(239,68,68,.15)">🧹</div><div><div class="card-ttl">Remove All Resources</div></div></div>
+    <div class="card-body">
+      <div class="code-wrap"><pre class="code"><span class="cm"># Delete the entire namespace — removes ALL resources inside it</span>
+kubectl delete namespace vote
+
+<span class="cm"># Reset default namespace</span>
+kubectl config set-context --current --namespace=default
+
+<span class="cm"># Verify everything is gone</span>
+kubectl get all -n vote
+<span class="cm"># Expected: No resources found in vote namespace.</span></pre><button class="copy-btn" onclick="cp(this,'kubectl delete namespace vote\nkubectl config set-context --current --namespace=default')">Copy</button></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon" style="background:rgba(34,197,94,.15)">🏆</div><div><div class="card-ttl">What You Just Built</div><div class="card-sub">A complete production-pattern microservices deployment</div></div></div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem;">
+        <div class="box blue" style="margin:0"><strong>5 Microservices</strong>Python, Node.js, .NET Core, Redis, PostgreSQL — all running together, independently deployable.</div>
+        <div class="box green" style="margin:0"><strong>Service Discovery</strong>Services find each other by DNS name — no hardcoded IPs anywhere in the app.</div>
+        <div class="box purple" style="margin:0"><strong>3 Service Types Used</strong>ClusterIP for internal services, NodePort for browser-accessible frontends.</div>
+        <div class="box cyan" style="margin:0"><strong>10 YAML Objects</strong>5 Deployments + 4 Services (Worker needs none). This is the Kubernetes pattern.</div>
+      </div>
+
+      <div class="box amber">
+        <strong>🎯 What's Next — Deployments with Rolling Updates</strong>
+        You've been using Deployments but we haven't explored their superpower yet: <strong>rolling updates</strong>. When you update the voting app image, Kubernetes replaces pods one by one — zero downtime. Combined with <strong>rollback</strong>, this is how production teams deploy safely. That's the next segment.
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-row">
+    <button class="nbtn prev" onclick="go(9)">← Verify</button>
+    <button class="nbtn next" disabled style="background:var(--green-d);border-color:var(--green);cursor:default">🎉 Complete!</button>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+let cur = 0;
+const TOTAL = 11;
+
+function go(n){
+  document.querySelectorAll('.page').forEach((p,i) => p.classList.toggle('active', i===n));
+  document.querySelectorAll('.tr-item').forEach((t,i) => {
+    t.classList.remove('active','done');
+    if(i < n) t.classList.add('done');
+    if(i === n) t.classList.add('active');
+  });
+  document.querySelectorAll('.sb-item').forEach((t,i) => {
+    t.classList.remove('active');
+    if(i === n) t.classList.add('active');
+  });
+  cur = n;
+  updateProgress();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateProgress(){
+  const done = document.querySelectorAll('.tr-item.done').length;
+  const active = 1;
+  const pct = Math.round(((done + 0.5) / TOTAL) * 100);
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-lbl').textContent = done + ' / ' + TOTAL + ' sections';
+  document.getElementById('prog-pct').textContent = pct + '%';
+}
+
+function st(btn, panelId){
+  const container = btn.closest('.card-body');
+  container.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  container.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+
+function cp(btn, text){
+  const content = text || btn.previousElementSibling?.textContent || '';
+  navigator.clipboard.writeText(content.trim()).then(() => {
+    btn.textContent = '✓ Copied'; btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('ok'); }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = content.trim(); document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = '✓ Copied'; btn.classList.add('ok');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('ok'); }, 2000);
+  });
+}
+
+function tc(el){
+  el.classList.toggle('done');
+  if(el.classList.contains('done')) el.querySelector('.chk-box').textContent = '✓';
+  else el.querySelector('.chk-box').textContent = '';
+}
+
+updateProgress();
+</script>
+</body>
+</html>
