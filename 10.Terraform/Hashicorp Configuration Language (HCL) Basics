@@ -1,0 +1,51 @@
+<block> <parameters> {
+    key1 = value1
+    key2 = value2
+}
+
+## What is a block? and what argument does it contain? 
+    - In its simplest form, Block in Terraform contains information about the infrastructure platform, and a set of resources, within that platform that we want to create. 
+    - For example, let us consider a simple task, we want to create a 
+    an EC2 instance on AWS. Here's how we'd write that in Terraform:
+
+    <!--
+    This section of the code is intended to demonstrate the basics of HashiCorp Configuration Language (HCL) as it relates to Terraform. 
+    Lines 11 to 19 serve as an example of how to define resources in HCL, specifically for provisioning infrastructure on AWS EC2. 
+    These lines illustrate the syntax and structure used in HCL for resource declaration, which is essential for users to understand 
+    when working with Terraform to automate the provisioning of cloud resources. 
+    This example is crucial for beginners to grasp the foundational concepts of HCL and its application in infrastructure as code.
+    -->
+    ```hcl
+    terraform {
+        required_providers {
+            aws = {
+                source  = "hashicorp/aws"
+                version = "~> 5.0"
+            }
+        }
+    }
+
+    provider "aws" {
+        region = "us-east-1"
+    }
+
+    resource "aws_instance" "example" {
+        ami           = "ami-0c55b159cbfafe1f0"  # Amazon Machine Image ID
+        instance_type = "t2.micro"                # Instance type (free tier eligible)
+        
+        tags = {
+            Name = "MyFirstInstance"
+        }
+    }
+    ```
+
+    **Parameter Explanation:**
+    - `terraform`: Specifies required providers and their versions
+    - `provider`: Configures the AWS provider and sets the region
+    - `resource`: Declares an EC2 instance with:
+        - `ami`: The operating system image to use
+        - `instance_type`: The computing capacity (t2.micro is free tier eligible)
+        - `tags`: Labels for easy identification in the AWS console
+
+
+
