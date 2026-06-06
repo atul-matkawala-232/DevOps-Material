@@ -1,0 +1,12 @@
+Open GCP Console
+Activate Cloud shell
+Set your project: 
+    export GOOGLE_CLOUD_PROJECT=your-project-id
+
+
+Create a working directory: 
+    mkdir gcp-terraform-demo 
+    cd gcp-terraform-demo
+    touch main.tf
+
+
