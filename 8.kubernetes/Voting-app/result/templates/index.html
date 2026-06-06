@@ -1,0 +1,6 @@
+<h2>Voting Results</h2>
+<ul>
+  {% for vote, count in counts %}
+    <li>{{ vote }}: {{ count }}</li>
+  {% endfor %}
+</ul>

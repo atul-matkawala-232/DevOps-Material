@@ -1,0 +1,1 @@
+bucket_name = "my-terraform-demo-bucket-2024abc"
